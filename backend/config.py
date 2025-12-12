@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     PORT: int = 8000
     DEBUG: bool = True
     
-    # CORS
+    # CORS - can be set as comma-separated string in .env
+    # Pydantic Settings will automatically parse comma-separated strings
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
     
     # File Upload

@@ -57,7 +57,8 @@ async def upload_inventory_excel(
                 medicine = db.query(Medicine).filter(Medicine.sku == sku).first()
                 if not medicine:
                     # Auto-categorize using AI
-                    category = categorize_medicine(name, row.get('Manufacturer', ''), row.get('Brand', ''))
+                    description = f"{row.get('Manufacturer', '')} {row.get('Brand', '')}".strip()
+                    category = categorize_medicine(name, description if description else None)
                     
                     medicine = Medicine(
                         sku=sku,
