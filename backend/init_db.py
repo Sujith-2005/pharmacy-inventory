@@ -26,11 +26,11 @@ def init_db():
             )
             db.add(admin)
             db.commit()
-            print("✓ Default admin user created:")
+            print("Default admin user created:")
             print("  Email: admin@pharmacy.com")
             print("  Password: admin123")
         else:
-            print("✓ Admin user already exists")
+            print("Admin user already exists")
         
         # Create sample pharmacy manager
         manager = db.query(User).filter(User.email == "manager@pharmacy.com").first()
@@ -44,7 +44,7 @@ def init_db():
             )
             db.add(manager)
             db.commit()
-            print("✓ Default manager user created:")
+            print("Default manager user created:")
             print("  Email: manager@pharmacy.com")
             print("  Password: manager123")
         

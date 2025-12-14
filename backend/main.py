@@ -9,7 +9,7 @@ import uvicorn
 
 from database import get_db, engine, Base
 from models import User, Medicine, Batch, InventoryTransaction
-from routers import auth, inventory, forecasting, alerts, waste, dashboard, chatbot, suppliers
+from routers import auth, inventory, forecasting, alerts, waste, dashboard, chatbot, suppliers, debug
 from config import settings
 
 # Create database tables
@@ -39,6 +39,7 @@ app.include_router(waste.router, prefix="/api/waste", tags=["Waste Analytics"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(chatbot.router, prefix="/api/chatbot", tags=["Chatbot"])
 app.include_router(suppliers.router, prefix="/api/suppliers", tags=["Suppliers"])
+app.include_router(debug.router, prefix="/api", tags=["Debug"])
 
 
 @app.get("/")

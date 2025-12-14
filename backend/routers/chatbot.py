@@ -1,237 +1,219 @@
 """
-AI Chatbot router for inventory queries
+AI Chatbot router with Gemini integration (dynamic model selection)
+Compatible with google-generativeai >= 0.8.5
 """
+
+from dotenv import load_dotenv
+load_dotenv()
+
+import os
+import uuid
+from typing import Optional
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
-from typing import List, Optional
-import re
-import uuid
+from sqlalchemy import or_
 
 from database import get_db
 from models import Medicine, Batch, Alert, AlertType
 from schemas import ChatMessage, ChatResponse
-from auth import get_current_active_user
 
 router = APIRouter()
 
+# =====================================================
+# GEMINI INITIALIZATION
+# =====================================================
 
-def parse_query(query: str) -> dict:
-    """Parse user query to extract intent and entities"""
+try:
+    import google.generativeai as genai
+
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    print("DEBUG | GEMINI_API_KEY loaded:", bool(GEMINI_API_KEY))
+
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY missing")
+
+    genai.configure(api_key=GEMINI_API_KEY)
+    GEMINI_AVAILABLE = True
+
+except Exception as e:
+    print("❌ Gemini initialization failed:", e)
+    GEMINI_AVAILABLE = False
+
+
+def get_gemini_model():
+    """
+    Dynamically find a Gemini model that supports generateContent.
+    This is REQUIRED for google-generativeai 0.8.x
+    """
+    models = genai.list_models()
+    for m in models:
+        if "generateContent" in m.supported_generation_methods:
+            print("✅ Using Gemini model:", m.name)
+            return genai.GenerativeModel(m.name)
+    raise RuntimeError("No Gemini model supports generateContent")
+
+
+# =====================================================
+# CONTEXT BUILDER
+# =====================================================
+
+def get_inventory_context(db: Session) -> str:
+    try:
+        total_medicines = db.query(Medicine).filter(Medicine.is_active == True).count()
+        low_stock_count = db.query(Alert).filter(
+            Alert.alert_type.in_([AlertType.LOW_STOCK, AlertType.STOCK_OUT]),
+            Alert.is_acknowledged == False
+        ).count()
+        active_batches = db.query(Batch).filter(
+            Batch.is_expired == False,
+            Batch.quantity > 0
+        ).count()
+
+        return f"""
+You are an AI assistant for a pharmacy inventory management system.
+
+Current snapshot:
+- Total active medicines: {total_medicines}
+- Low stock alerts: {low_stock_count}
+- Active batches: {active_batches}
+
+Answer clearly, professionally, and helpfully.
+"""
+    except Exception:
+        return "You are an AI assistant for a pharmacy inventory management system."
+
+
+# =====================================================
+# RULE-BASED INVENTORY HANDLER
+# =====================================================
+
+def handle_inventory_query(query: str, db: Session) -> Optional[str]:
     query_lower = query.lower()
-    
-    intent = None
-    medicine_name = None
-    action = None
-    
-    # Check for stock queries
-    if any(word in query_lower for word in ["stock", "available", "have", "inventory"]):
-        intent = "check_stock"
-        # Try to extract medicine name
-        # Simple extraction - look for capitalized words or common patterns
-        words = query.split()
-        for i, word in enumerate(words):
-            if word[0].isupper() and len(word) > 3:
-                medicine_name = word
-                break
-    
-    # Check for expiry queries
-    if any(word in query_lower for word in ["expire", "expiry", "expiring", "expires"]):
-        intent = "check_expiry"
-        # Extract medicine name
-        words = query.split()
-        for i, word in enumerate(words):
-            if word[0].isupper() and len(word) > 3:
-                medicine_name = word
-                break
-    
-    # Check for low stock queries
-    if any(word in query_lower for word in ["low stock", "low inventory", "running out"]):
-        intent = "low_stock"
-    
-    # Check for waste queries
-    if any(word in query_lower for word in ["waste", "wastage", "expired", "damaged"]):
-        intent = "waste_analytics"
-    
-    # Check for report requests
-    if any(word in query_lower for word in ["report", "show", "list", "generate"]):
-        action = "generate_report"
-    
-    # Check for help
-    if any(word in query_lower for word in ["help", "how", "guide", "tutorial"]):
-        intent = "help"
-    
-    return {
-        "intent": intent,
-        "medicine_name": medicine_name,
-        "action": action,
-        "original_query": query
-    }
 
+    if any(word in query_lower for word in ["stock", "available", "inventory", "have"]):
+        words = query.split()
+        medicine_name = next((w for w in words if len(w) > 3), None)
+
+        if medicine_name:
+            medicine = db.query(Medicine).filter(
+                or_(
+                    Medicine.name.ilike(f"%{medicine_name}%"),
+                    Medicine.sku.ilike(f"%{medicine_name}%")
+                )
+            ).first()
+
+            if medicine:
+                batches = db.query(Batch).filter(
+                    Batch.medicine_id == medicine.id,
+                    Batch.is_expired == False,
+                    Batch.quantity > 0
+                ).order_by(Batch.expiry_date).all()
+
+                total_stock = sum(b.quantity for b in batches)
+
+                if total_stock > 0:
+                    nearest = batches[0]
+                    return (
+                        f"{medicine.name} is in stock.\n"
+                        f"Total quantity: {total_stock} units.\n"
+                        f"Nearest expiry: {nearest.expiry_date}.\n"
+                        f"Dispense batch: {nearest.batch_number} (FEFO)."
+                    )
+                else:
+                    return f"{medicine.name} is currently out of stock."
+
+    if "low stock" in query_lower:
+        alerts = db.query(Alert).filter(
+            Alert.alert_type.in_([AlertType.LOW_STOCK, AlertType.STOCK_OUT]),
+            Alert.is_acknowledged == False
+        ).all()
+
+        if alerts:
+            items = ", ".join(a.message.split("(")[0] for a in alerts[:5])
+            return f"Low stock items include: {items}."
+        else:
+            return "There are no low stock items at the moment."
+
+    return None
+
+
+# =====================================================
+# CHAT ENDPOINT
+# =====================================================
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     message: ChatMessage,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user)
+    db: Session = Depends(get_db)
 ):
-    """Chatbot endpoint"""
-    if not message.session_id:
-        session_id = str(uuid.uuid4())
-    else:
-        session_id = message.session_id
-    
-    parsed = parse_query(message.message)
-    intent = parsed["intent"]
-    medicine_name = parsed["medicine_name"]
-    
-    response_text = ""
-    suggested_actions = []
-    
-    if intent == "check_stock":
-        if medicine_name:
-            # Search for medicine
-            medicine = db.query(Medicine).filter(
-                or_(
-                    Medicine.name.ilike(f"%{medicine_name}%"),
-                    Medicine.sku.ilike(f"%{medicine_name}%")
+    session_id = message.session_id or str(uuid.uuid4())
+    user_query = message.message.strip()
+
+    print("DEBUG | User query:", user_query)
+    print("DEBUG | Gemini available:", GEMINI_AVAILABLE)
+
+    # 1️⃣ Inventory logic first
+    inventory_reply = handle_inventory_query(user_query, db)
+    if inventory_reply:
+        return ChatResponse(
+            response=inventory_reply,
+            session_id=session_id
+        )
+
+    # 2️⃣ Gemini for everything else
+    if GEMINI_AVAILABLE:
+        try:
+            model = get_gemini_model()
+            context = get_inventory_context(db)
+
+            prompt = f"""{context}
+
+User question:
+{user_query}
+
+Respond naturally and conversationally.
+"""
+
+            response = model.generate_content(prompt)
+            text = response.text if hasattr(response, "text") else None
+
+            if text:
+                return ChatResponse(
+                    response=text.strip(),
+                    session_id=session_id
                 )
-            ).first()
-            
-            if medicine:
-                batches = db.query(Batch).filter(
-                    Batch.medicine_id == medicine.id,
-                    Batch.is_expired == False,
-                    Batch.quantity > 0
-                ).order_by(Batch.expiry_date).all()
-                
-                total_stock = sum([b.quantity for b in batches])
-                
-                if total_stock > 0:
-                    nearest_expiry = batches[0].expiry_date if batches else None
-                    response_text = (
-                        f"Yes, {medicine.name} ({medicine.sku}) is available. "
-                        f"Total stock: {total_stock} units. "
-                        f"Nearest expiry: {nearest_expiry.strftime('%Y-%m-%d') if nearest_expiry else 'N/A'}. "
-                        f"Recommended batch to dispense: {batches[0].batch_number} (FEFO)."
-                    )
-                    suggested_actions.append(f"View details for {medicine.name}")
-                else:
-                    response_text = f"{medicine.name} is currently out of stock."
-                    suggested_actions.append("Check reorder suggestions")
-            else:
-                response_text = f"I couldn't find a medicine matching '{medicine_name}'. Please check the spelling or try searching by SKU."
-        else:
-            response_text = "I can check stock for you. Please specify the medicine name or SKU. For example: 'Do we have Azithromycin 500 in stock?'"
-    
-    elif intent == "check_expiry":
-        if medicine_name:
-            medicine = db.query(Medicine).filter(
-                or_(
-                    Medicine.name.ilike(f"%{medicine_name}%"),
-                    Medicine.sku.ilike(f"%{medicine_name}%")
-                )
-            ).first()
-            
-            if medicine:
-                batches = db.query(Batch).filter(
-                    Batch.medicine_id == medicine.id,
-                    Batch.is_expired == False,
-                    Batch.quantity > 0
-                ).order_by(Batch.expiry_date).all()
-                
-                if batches:
-                    nearest_batch = batches[0]
-                    response_text = (
-                        f"The nearest expiry batch for {medicine.name} is: "
-                        f"Batch {nearest_batch.batch_number}, "
-                        f"expires on {nearest_batch.expiry_date.strftime('%Y-%m-%d')}, "
-                        f"quantity: {nearest_batch.quantity} units."
-                    )
-                    suggested_actions.append(f"View expiry management for {medicine.name}")
-                else:
-                    response_text = f"No active batches found for {medicine.name}."
-            else:
-                response_text = f"I couldn't find a medicine matching '{medicine_name}'."
-        else:
-            response_text = "I can check expiry dates for you. Please specify the medicine name. For example: 'Which batch of Azithromycin expires first?'"
-    
-    elif intent == "low_stock":
-        low_stock_alerts = db.query(Alert).filter(
-            Alert.alert_type.in_([AlertType.LOW_STOCK, AlertType.STOCK_OUT]),
-            Alert.is_acknowledged == False
-        ).limit(10).all()
-        
-        if low_stock_alerts:
-            medicine_names = [a.message.split("(")[0].strip() for a in low_stock_alerts[:5]]
-            response_text = f"I found {len(low_stock_alerts)} low stock items. Top items: {', '.join(medicine_names)}."
-            suggested_actions.append("View all low stock alerts")
-            suggested_actions.append("Generate reorder suggestions")
-        else:
-            response_text = "No low stock items found. All items are well-stocked."
-    
-    elif intent == "waste_analytics":
-        # Get recent waste data
-        from datetime import datetime, timedelta
-        start_date = datetime.now() - timedelta(days=30)
-        
-        expired_count = db.query(Batch).filter(
-            Batch.is_expired == True,
-            Batch.updated_at >= start_date
-        ).count()
-        
-        damaged_count = db.query(Batch).filter(
-            Batch.is_damaged == True,
-            Batch.updated_at >= start_date
-        ).count()
-        
-        response_text = (
-            f"In the last 30 days, we have: "
-            f"{expired_count} expired batches and {damaged_count} damaged batches. "
-            f"Would you like to see detailed waste analytics?"
-        )
-        suggested_actions.append("View waste analytics dashboard")
-        suggested_actions.append("Generate waste report")
-    
-    elif intent == "help":
-        response_text = (
-            "I can help you with:\n"
-            "- Checking stock availability: 'Do we have [medicine name] in stock?'\n"
-            "- Checking expiry dates: 'Which batch of [medicine] expires first?'\n"
-            "- Low stock alerts: 'Show me low stock items'\n"
-            "- Waste analytics: 'How much did we waste last month?'\n"
-            "- Generating reports: 'Generate low stock report'\n\n"
-            "Try asking me a question!"
-        )
-    
-    else:
-        response_text = (
-            "I can help you with inventory queries. Try asking:\n"
-            "- 'Do we have [medicine name] in stock?'\n"
-            "- 'Show me low stock items'\n"
-            "- 'Which batch expires first?'\n"
-            "- 'How much did we waste last month?'\n"
-            "Or type 'help' for more options."
-        )
-    
+
+            return ChatResponse(
+                response="I didn’t quite get that. Could you rephrase?",
+                session_id=session_id
+            )
+
+        except Exception as e:
+            print("❌ GEMINI RUNTIME ERROR:", str(e))
+            return ChatResponse(
+                response=f"Gemini error: {str(e)}",
+                session_id=session_id
+            )
+
+    # 3️⃣ Final fallback (Gemini unavailable)
     return ChatResponse(
-        response=response_text,
-        session_id=session_id,
-        suggested_actions=suggested_actions if suggested_actions else None
+        response=(
+            "I’m here to help with pharmacy inventory, stock levels, expiries, "
+            "reorder planning, and general questions. How can I assist you?"
+        ),
+        session_id=session_id
     )
 
 
 @router.get("/suggestions")
 async def get_chat_suggestions():
-    """Get suggested queries for the chatbot"""
     return {
         "suggestions": [
             "Do we have Azithromycin 500 in stock?",
-            "Show me low stock items",
-            "Which batch of Paracetamol expires first?",
-            "How much did we waste last month?",
-            "Generate low stock report"
+            "Which medicines are low on stock?",
+            "Explain FEFO principle",
+            "How can we reduce medicine wastage?",
+            "Tell me a joke"
         ]
     }
-
-
