@@ -1,25 +1,7 @@
 import { apiClient } from './client'
 
-export interface LoginCredentials {
-  email: string
-  password: string
-}
-
-export interface User {
-  id: number
-  email: string
-  full_name: string
-  role: string
-  phone?: string
-}
-
-export interface AuthResponse {
-  access_token: string
-  token_type: string
-}
-
 export const authApi = {
-  login: async (email: string, password: string): Promise<AuthResponse> => {
+  login: async (email, password) => {
     const formData = new URLSearchParams()
     formData.append('username', email)  // OAuth2PasswordRequestForm expects 'username' field
     formData.append('password', password)
@@ -32,10 +14,8 @@ export const authApi = {
     return response.data
   },
 
-  getMe: async (): Promise<User> => {
+  getMe: async () => {
     const response = await apiClient.get('/api/auth/me')
     return response.data
   },
 }
-
-

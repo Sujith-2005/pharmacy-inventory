@@ -8,14 +8,40 @@ export default function Inventory() {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [showUploadModal, setShowUploadModal] = useState(false)
 
-  const { data: medicines, isLoading } = useQuery({
+  const { data: medicines, isLoading, refetch: refetchMedicines, error: medicinesError } = useQuery({
     queryKey: ['medicines', searchTerm, selectedCategory],
-    queryFn: () => inventoryApi.getMedicines({ search: searchTerm, category: selectedCategory }),
+    queryFn: async () => {
+      console.log('DEBUG: Fetching medicines with params:', { search: searchTerm, category: selectedCategory })
+      try {
+        const result = await inventoryApi.getMedicines({ search: searchTerm, category: selectedCategory })
+        console.log('DEBUG: Medicines fetched:', result?.length || 0, 'items')
+        if (result && result.length > 0) {
+          console.log('DEBUG: Sample medicine:', result[0])
+        }
+        return result || []
+      } catch (error) {
+        console.error('ERROR: Failed to fetch medicines:', error)
+        return []
+      }
+    },
+    staleTime: 1000, // Consider stale after 1 second
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes (React Query v5 uses gcTime instead of cacheTime)
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: true, // Always refetch on mount
   })
 
-  const { data: stockLevels } = useQuery({
+  const { data: stockLevels, refetch: refetchStockLevels } = useQuery({
     queryKey: ['stock-levels'],
-    queryFn: () => inventoryApi.getStockLevels(),
+    queryFn: async () => {
+      console.log('DEBUG: Fetching stock levels')
+      const result = await inventoryApi.getStockLevels()
+      console.log('DEBUG: Stock levels fetched:', result?.length || 0, 'items')
+      return result
+    },
+    staleTime: 1000, // Consider stale after 1 second
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 
   return (
@@ -112,9 +138,9 @@ export default function Inventory() {
                     </div>
                   </td>
                 </tr>
-              ) : medicines && medicines.length > 0 ? (
-                medicines.map((medicine: any) => {
-                  const stock = stockLevels?.find((s: any) => s.medicine_id === medicine.id)
+              ) : !isLoading && medicines && medicines.length > 0 ? (
+                medicines.map((medicine) => {
+                  const stock = stockLevels?.find((s) => s.medicine_id === medicine.id)
                   const stockQty = stock?.total_quantity || 0
                   const stockStatus = stockQty === 0 ? 'out' : stockQty < 20 ? 'low' : stockQty < 50 ? 'medium' : 'good'
                   
@@ -217,5 +243,3 @@ export default function Inventory() {
     </div>
   )
 }
-
-

@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+// Use environment variable if set, otherwise use relative URL for Vite proxy
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -10,7 +10,7 @@ export const apiClient = axios.create({
   },
 })
 
-// Attach token
+// Add auth token to requests
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
@@ -19,8 +19,14 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// IMPORTANT: do NOT redirect on 401 here
+// Handle auth errors
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
 )

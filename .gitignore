@@ -3,6 +3,8 @@
 # ============================================
 
 # -------------------- Python --------------------
+#env variable
+.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -94,6 +96,7 @@ coverage/
 # Production build
 /build
 /dist
+frontend/dist/
 
 # Misc
 .DS_Store
@@ -226,3 +229,6 @@ temp/
 *.bak
 *.backup
 
+# Empty directories
+data/
+frontend/public/.gitkeep
