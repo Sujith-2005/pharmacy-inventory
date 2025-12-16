@@ -3,10 +3,10 @@ import { apiClient } from './client'
 export const authApi = {
   login: async (email, password) => {
     const formData = new URLSearchParams()
-    formData.append('username', email)  // OAuth2PasswordRequestForm expects 'username' field
+    formData.append('username', email)   // required by OAuth2PasswordRequestForm
     formData.append('password', password)
-    
-    const response = await apiClient.post('/api/auth/login', formData, {
+
+    const response = await apiClient.post('/auth/login', formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -15,7 +15,7 @@ export const authApi = {
   },
 
   getMe: async () => {
-    const response = await apiClient.get('/api/auth/me')
+    const response = await apiClient.get('/auth/me')
     return response.data
   },
 }
