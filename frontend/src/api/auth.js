@@ -7,7 +7,7 @@ export const authApi = {
     formData.append('password', password)
 
     const response = await apiClient.post(
-      '/api/auth/login',
+      '/api/auth/login',   // ✅ THIS MUST INCLUDE /api
       formData,
       {
         headers: {
@@ -15,12 +15,11 @@ export const authApi = {
         },
       }
     )
-
     return response.data
   },
 
   getMe: async () => {
-    const response = await apiClient.get('/api/auth/me')
+    const response = await apiClient.get('/api/auth/me') // ✅ same here
     return response.data
   },
 }
