@@ -18,6 +18,7 @@ from routers import (
     suppliers,
     debug,
 )
+from config import settings
 
 # -----------------------------
 # Create database tables
@@ -38,11 +39,7 @@ app = FastAPI(
 # -----------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://pharmacy-inventory1.vercel.app",  # Vercel frontend
-        "https://pharmacy-inventory3.vercel.app",  # NEW Vercel frontend
-        "http://localhost:5173",                   # Local dev (Vite)
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
