@@ -47,12 +47,13 @@ export const mockMedicines = [
 ];
 
 export const mockDashboardStats = {
-    total_medicines: 1250,
+    total_skus: 1250,
     low_stock_count: 15,
-    expired_count: 5,
-    total_value: 450000,
-    near_expiry_count: 12,
-    active_alerts: 3
+    expiring_soon_count: 5,
+    total_stock_value: 450000,
+    expiring_soon_count: 12,
+    total_alerts: 3,
+    wastage_value: 2500
 };
 
 export const mockSalesTrends = {

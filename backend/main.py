@@ -40,6 +40,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://pharmacy-inventory1.vercel.app",  # Vercel frontend
+        "https://pharmacy-inventory3.vercel.app",  # NEW Vercel frontend
         "http://localhost:5173",                   # Local dev (Vite)
     ],
     allow_credentials=True,
