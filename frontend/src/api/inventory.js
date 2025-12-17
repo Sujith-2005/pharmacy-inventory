@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import { mockMedicines } from './mockData'
 
 export const inventoryApi = {
   uploadFile: async (file) => {
@@ -11,20 +12,30 @@ export const inventoryApi = {
     })
     return response.data
   },
-  
+
   uploadExcel: async (file) => {
     // Legacy endpoint for backward compatibility
     return inventoryApi.uploadFile(file)
   },
 
   getMedicines: async (params) => {
-    const response = await apiClient.get('/api/inventory/medicines', { params })
-    return response.data
+    try {
+      const response = await apiClient.get('/api/inventory/medicines', { params })
+      return response.data
+    } catch (error) {
+      console.warn('Network error, using mock data for medicines', error)
+      return mockMedicines
+    }
   },
 
   getMedicine: async (id) => {
-    const response = await apiClient.get(`/api/inventory/medicines/${id}`)
-    return response.data
+    try {
+      const response = await apiClient.get(`/api/inventory/medicines/${id}`)
+      return response.data
+    } catch (error) {
+      console.warn('Network error, using mock data for medicine details', error)
+      return mockMedicines.find(m => m.id === Number(id))
+    }
   },
 
   getBatches: async (medicineId) => {
