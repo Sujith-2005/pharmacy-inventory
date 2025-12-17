@@ -7,7 +7,7 @@ export const authApi = {
     formData.append('password', password)
 
     const response = await apiClient.post(
-      '/api/auth/login',   // ✅ THIS MUST INCLUDE /api
+      '/auth/login',
       formData,
       {
         headers: {
@@ -15,11 +15,15 @@ export const authApi = {
         },
       }
     )
+
+    // ✅ STORE TOKEN IMMEDIATELY
+    localStorage.setItem('token', response.data.access_token)
+
     return response.data
   },
 
   getMe: async () => {
-    const response = await apiClient.get('/api/auth/me') // ✅ same here
+    const response = await apiClient.get('/auth/me')
     return response.data
   },
 }
