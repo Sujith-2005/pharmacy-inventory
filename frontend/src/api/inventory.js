@@ -6,34 +6,42 @@ export const inventoryApi = {
     const formData = new FormData()
     formData.append('file', file)
 
+    // DEBUG: Log the API URL being used
+    console.log('DEBUG: Starting upload...')
+    console.log('DEBUG: Base URL:', apiClient.defaults.baseURL)
+    console.log('DEBUG: Uploading file:', file.name, file.size)
+
     try {
       const response = await apiClient.post('/api/inventory/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        // Increase timeout for large files
-        timeout: 60000,
+        timeout: 120000, // 2 minutes for large files
       })
+      console.log('DEBUG: Upload success:', response.data)
       return response.data
     } catch (error) {
-      console.error('Upload failed:', error)
+      console.error('DEBUG: Upload FAILED', error)
+
+      let errorMessage = 'Upload failed'
+
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        const message = error.response.data?.detail || error.response.data?.message || 'Upload failed'
-        throw new Error(message)
+        console.error('DEBUG: Server Error Response:', error.response.data)
+        errorMessage = error.response.data?.detail || error.response.data?.message || JSON.stringify(error.response.data)
       } else if (error.request) {
-        // The request was made but no response was received
-        throw new Error('No response from server. Please check your connection.')
+        console.error('DEBUG: No response received', error.request)
+        errorMessage = 'Server not reachable (Network Error). Check if backend is running.'
       } else {
-        // Something happened in setting up the request that triggered an Error
-        throw new Error('Error preparing upload: ' + error.message)
+        errorMessage = error.message
       }
+
+      const enhancedError = new Error(errorMessage)
+      enhancedError.originalError = error
+      throw enhancedError
     }
   },
 
   uploadExcel: async (file) => {
-    // Legacy endpoint for backward compatibility
     return inventoryApi.uploadFile(file)
   },
 
