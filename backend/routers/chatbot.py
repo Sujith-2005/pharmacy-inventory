@@ -61,10 +61,30 @@ def get_gemini_model():
 def get_inventory_context(db: Session) -> str:
     try:
         total_medicines = db.query(Medicine).filter(Medicine.is_active == True).count()
-        low_stock_count = db.query(Alert).filter(
+        
+        # Get low stock items
+        low_stock_alerts = db.query(Alert).filter(
             Alert.alert_type.in_([AlertType.LOW_STOCK, AlertType.STOCK_OUT]),
             Alert.is_acknowledged == False
-        ).count()
+        ).order_by(Alert.severity.desc()).limit(5).all()
+        
+        low_stock_list = []
+        for alert in low_stock_alerts:
+            # Extract medicine name from message or query DB if needed
+            low_stock_list.append(alert.message)
+            
+        # Get expiring soon items
+        today = __import__('datetime').datetime.now()
+        expiring_batches = db.query(Batch).filter(
+            Batch.is_expired == False,
+            Batch.quantity > 0,
+            Batch.expiry_date <= today + __import__('datetime').timedelta(days=90)
+        ).order_by(Batch.expiry_date).limit(5).all()
+        
+        expiring_list = []
+        for batch in expiring_batches:
+            expiring_list.append(f"{batch.medicine.name} (Batch {batch.batch_number}, Expires {batch.expiry_date.date()})")
+
         active_batches = db.query(Batch).filter(
             Batch.is_expired == False,
             Batch.quantity > 0
@@ -75,12 +95,16 @@ You are an AI assistant for a pharmacy inventory management system.
 
 Current snapshot:
 - Total active medicines: {total_medicines}
-- Low stock alerts: {low_stock_count}
 - Active batches: {active_batches}
 
-Answer clearly, professionally, and helpfully.
+CRITICAL ALERTS (Mention these if relevant):
+- Low Stock: {"; ".join(low_stock_list) if low_stock_list else "None"}
+- Expiring Soon: {"; ".join(expiring_list) if expiring_list else "None"}
+
+Answer clearly, professionally, and helpfully. If asking about stock, verify against the context.
 """
-    except Exception:
+    except Exception as e:
+        print(f"Context Error: {e}")
         return "You are an AI assistant for a pharmacy inventory management system."
 
 

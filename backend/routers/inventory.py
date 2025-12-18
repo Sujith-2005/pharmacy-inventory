@@ -85,61 +85,77 @@ def detect_data_type(df: pd.DataFrame) -> str:
 def normalize_column_names(df: pd.DataFrame, data_type: str = 'inventory') -> pd.DataFrame:
     """Normalize column names to handle variations based on data type"""
     df_normalized = df.copy()
-    df_normalized.columns = df_normalized.columns.str.strip()
     
+    # Clean existing columns: strip whitespace and convert to lower case for mapping
+    # We keep a map of {clean_name: original_name} to access data later
+    # But for the output, we want standardized names
+    
+    # Standard mapping (Target Name: [List of possible variations])
     if data_type == 'inventory':
-        column_mapping = {
-            'sku': 'SKU',
-            'medicine_name': 'Medicine Name',
-            'medicine name': 'Medicine Name',
-            'name': 'Medicine Name',
-            'batch_no': 'Batch No',
-            'batch number': 'Batch No',
-            'batch': 'Batch No',
-            'quantity': 'Quantity',
-            'qty': 'Quantity',
-            'expiry_date': 'Expiry Date',
-            'expiry date': 'Expiry Date',
-            'expiry': 'Expiry Date',
-            'exp_date': 'Expiry Date',
-            'manufacturer': 'Manufacturer',
-            'brand': 'Brand',
-            'mrp': 'MRP',
-            'cost': 'Cost',
-            'purchase_price': 'Purchase Price',
-            'purchase price': 'Purchase Price',
-            'purchase_date': 'Purchase Date',
-            'purchase date': 'Purchase Date',
-            'schedule': 'Schedule',
-            'storage_requirements': 'Storage Requirements',
-            'storage requirements': 'Storage Requirements',
-            'storage': 'Storage Requirements',
+        mapping_rules = {
+            'SKU': ['sku', 'item_code', 'product_id', 'medicine_id', 'id'],
+            'Medicine Name': ['medicine_name', 'medicine', 'name', 'product_name', 'item_name', 'drug_name'],
+            'Batch No': ['batch_no', 'batch_number', 'batch', 'lot_number', 'lot_no'],
+            'Quantity': ['quantity', 'qty', 'stock', 'current_stock', 'inventory'],
+            'Expiry Date': ['expiry_date', 'expiry', 'exp_date', 'expiration_date', 'exp'],
+            'Manufacturer': ['manufacturer', 'mfr', 'company', 'brand'],
+            'Brand': ['brand', 'brand_name'],
+            'MRP': ['mrp', 'price', 'max_retail_price'],
+            'Cost': ['cost', 'cost_price', 'purchase_cost', 'rate'],
+            'Purchase Price': ['purchase_price', 'purchase_rate', 'buying_price'],
+            'Purchase Date': ['purchase_date', 'buying_date', 'date_of_purchase'],
+            'Schedule': ['schedule', 'drug_schedule', 'category_class'],
+            'Storage Requirements': ['storage_requirements', 'storage', 'storage_condition']
         }
     elif data_type == 'doctor':
-        column_mapping = {
-            'physid': 'physID',
-            'phys_id': 'physID',
-            'doctor_id': 'physID',
-            'name': 'name',
-            'doctor_name': 'name',
-            'physician_name': 'name',
-            'address': 'address',
-            'phone': 'phone',
-            'phone_number': 'phone',
-            'contact': 'phone',
+        mapping_rules = {
+            'physID': ['physid', 'phys_id', 'doctor_id', 'id'],
+            'name': ['name', 'doctor_name', 'physician_name', 'full_name'],
+            'address': ['address', 'clinic_address', 'hospital_address', 'location'],
+            'phone': ['phone', 'phone_number', 'mobile', 'contact', 'contact_number']
         }
     else:
-        # Generic mapping - just normalize case
-        column_mapping = {}
+        mapping_rules = {}
+
+    # Create a new DataFrame with standardized columns
+    new_df = pd.DataFrame()
     
-    for old_name, new_name in column_mapping.items():
-        if old_name.lower() in [col.lower() for col in df_normalized.columns]:
-            df_normalized.rename(columns={
-                col: new_name for col in df_normalized.columns 
-                if col.lower() == old_name.lower()
-            }, inplace=True)
+    # Get current columns in lower case stripped format
+    current_cols = {col.lower().strip().replace('_', '').replace(' ', ''): col for col in df_normalized.columns}
     
-    return df_normalized
+    for target_col, variations in mapping_rules.items():
+        found = False
+        for var in variations:
+            # Normalize variation for matching
+            clean_var = var.lower().replace('_', '').replace(' ', '')
+            if clean_var in current_cols:
+                # Copy data from original column to new standardized column
+                original_col_name = current_cols[clean_var]
+                new_df[target_col] = df_normalized[original_col_name]
+                found = True
+                break
+        
+        # specific handling for optional columns or defaults if needed
+        # (not enforced here, handled in validation)
+
+    # Attach any columns that weren't mapped but might be useful? 
+    # For now, let's strictly return the mapped columns + any others we want to keep?
+    # Actually, let's keep all columns but rename the identified ones 
+    
+    df_result = df_normalized.copy()
+    
+    for target_col, variations in mapping_rules.items():
+        for var in variations:
+            clean_var = var.lower().replace('_', '').replace(' ', '')
+            if clean_var in current_cols:
+                original_col_name = current_cols[clean_var]
+                if original_col_name in df_result.columns:
+                     df_result.rename(columns={original_col_name: target_col}, inplace=True)
+                     # Update the current_cols mapping to avoid double mapping
+                     # (Though simple loop breaks usually suffice)
+                     break
+    
+    return df_result
 
 
 @router.post("/upload", response_model=dict)

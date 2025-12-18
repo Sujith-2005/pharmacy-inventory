@@ -105,3 +105,56 @@ def batch_forecast_all_medicines(db: Session) -> List[Dict]:
     
     return forecasts
 
+    return forecasts
+
+
+def generate_synthetic_history(db: Session, months: int = 3) -> dict:
+    """
+    Generate synthetic history for demo purposes
+    """
+    import random
+    
+    medicines = db.query(Medicine).filter(Medicine.is_active == True).all()
+    count = 0
+    
+    # Clean up old synthetic data
+    # (In a real app, we'd tag synthetic data, but here we just append)
+    
+    for medicine in medicines:
+        # Check if has history
+        existing = db.query(InventoryTransaction).filter(
+            InventoryTransaction.medicine_id == medicine.id,
+            InventoryTransaction.transaction_type == TransactionType.OUT
+        ).first()
+        
+        if existing:
+            continue
+            
+        # Generate 3 months of random sales
+        base_daily_sales = random.randint(1, 10)
+        
+        for i in range(months * 30):
+            date = datetime.now() - timedelta(days=i)
+            
+            # Add some randomness and seasonality (e.g., weekends)
+            daily_qty = max(0, int(base_daily_sales * random.uniform(0.5, 1.5)))
+            
+            if daily_qty > 0:
+                # Find a batch
+                batch = medicine.batches[0] if medicine.batches else None
+                if not batch:
+                    continue
+                    
+                txn = InventoryTransaction(
+                    medicine_id=medicine.id,
+                    batch_id=batch.id,
+                    transaction_type=TransactionType.OUT,
+                    quantity=daily_qty,
+                    created_at=date,
+                    notes="Synthetic history (Simulation)"
+                )
+                db.add(txn)
+                count += 1
+                
+    db.commit()
+    return {"message": "Synthetic history generated", "transactions_created": count}

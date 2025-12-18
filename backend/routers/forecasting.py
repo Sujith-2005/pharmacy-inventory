@@ -126,9 +126,20 @@ async def generate_batch_forecast(
     
     db.commit()
     
+    
     return {
         "message": f"Generated forecasts for {len(forecasts)} medicines",
         "count": len(forecasts)
     }
+
+
+@router.post("/simulate")
+async def simulate_history(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_active_user)
+):
+    """Generate synthetic history for demo purposes"""
+    from ml_models.forecasting import generate_synthetic_history
+    return generate_synthetic_history(db)
 
 
