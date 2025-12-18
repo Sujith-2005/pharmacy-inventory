@@ -900,3 +900,90 @@ async def create_transaction(
     return db_transaction
 
 
+@router.get("/download-template")
+async def download_template(
+    format: str = "excel",
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_active_user)
+):
+    """Download inventory template file"""
+    import pandas as pd
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    import json
+    
+    # Sample data
+    data = [
+        {
+            "Medicine Name": "Paracetamol 500mg",
+            "SKU": "PARA500",
+            "Batch No": "BAT001",
+            "Quantity": 100,
+            "Expiry Date": "2025-12-31",
+            "Manufacturer": "Pharma Corp",
+            "Brand": "Calpol",
+            "MRP": 50.0,
+            "Cost": 35.0,
+            "Category": "Pain Relief",
+            "Storage Requirements": "Cool dry place"
+        },
+        {
+            "Medicine Name": "Amoxicillin 250mg",
+            "SKU": "AMOX250",
+            "Batch No": "BAT002",
+            "Quantity": 50,
+            "Expiry Date": "2024-06-30",
+            "Manufacturer": "Health Ltd",
+            "Brand": "Amox",
+            "MRP": 80.0,
+            "Cost": 55.0,
+            "Category": "Antibiotics",
+            "Storage Requirements": "Store below 25C"
+        }
+    ]
+    
+    if format == "csv":
+        df = pd.DataFrame(data)
+        stream = BytesIO()
+        df.to_csv(stream, index=False)
+        stream.seek(0)
+        return StreamingResponse(
+            stream,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=inventory_template.csv"}
+        )
+        
+    elif format == "json":
+        stream = BytesIO()
+        stream.write(json.dumps(data, indent=2).encode())
+        stream.seek(0)
+        return StreamingResponse(
+            stream,
+            media_type="application/json",
+            headers={"Content-Disposition": "attachment; filename=inventory_template.json"}
+        )
+        
+    else: # excel
+        df = pd.DataFrame(data)
+        stream = BytesIO()
+        # Use pandas to write excel
+        with pd.ExcelWriter(stream, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Inventory')
+            
+            # Auto-adjust columns width
+            worksheet = writer.sheets['Inventory']
+            for idx, col in enumerate(df.columns):
+                max_len = max(
+                    df[col].astype(str).map(len).max(),
+                    len(str(col))
+                ) + 2
+                worksheet.column_dimensions[chr(65 + idx)].width = max_len
+                
+        stream.seek(0)
+        return StreamingResponse(
+            stream,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=inventory_template.xlsx"}
+        )
+
+

@@ -34,4 +34,14 @@ export const forecastingApi = {
       return { success: true, message: "Mock forecast generated" }
     }
   },
+
+  simulateHistory: async () => {
+    try {
+      const response = await apiClient.post('/api/forecasting/simulate')
+      return response.data
+    } catch (error) {
+      console.warn('Network error, using mock simulation', error)
+      return { message: "Simulation triggered (Mock mode)" }
+    }
+  },
 }
