@@ -21,6 +21,7 @@ let authState: AuthContextType = {
   loading: true,
   login: async () => { },
   logout: () => { },
+  register: async () => { },
 }
 
 export function useAuth() {
