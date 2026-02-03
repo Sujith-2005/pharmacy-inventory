@@ -150,7 +150,8 @@ export default function FileUpload({ onSuccess, onClose }: FileUploadProps) {
   const handleDownloadTemplate = (format: 'excel' | 'csv' | 'json') => {
     try {
       // Hardcoded to 8000 to resolve user's local port mismatch (seeing 8002)
-      const baseUrl = 'http://localhost:8000'
+      // @ts-ignore
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       const url = `${baseUrl}/api/inventory/download-template?format=${format}`
 
       // Direct navigation is most reliable for downloads

@@ -172,7 +172,7 @@ export default function FileUpload({ onSuccess, onClose }) {
   const handleDownloadTemplate = (format) => {
     try {
       // Hardcoded to 8000 to resolve user's local port mismatch
-      const baseUrl = 'http://localhost:8000'
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       const url = `${baseUrl}/api/inventory/download-template?format=${format}`
 
       // Direct navigation is most reliable for downloads
