@@ -33,8 +33,13 @@ export default function Register() {
                 dataToSend.role = 'admin'
             }
 
-            // Remove the adminCode field so backend doesn't reject it
+            // Remove the adminCode field
             delete dataToSend.adminCode
+
+            // Convert empty phone to null to avoid Unique constraint violation
+            if (dataToSend.phone === '') {
+                dataToSend.phone = null
+            }
 
             await register(dataToSend)
             toast.success('Registration successful! Please login.')
