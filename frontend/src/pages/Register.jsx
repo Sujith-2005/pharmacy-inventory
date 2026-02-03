@@ -9,7 +9,7 @@ export default function Register() {
         password: '',
         full_name: '',
         phone: '',
-        role: 'staff', // Default role
+        role: 'pharmacist', // Default role
         adminCode: '' // Secret code for admin access
     })
     const [loading, setLoading] = useState(false)
@@ -41,7 +41,16 @@ export default function Register() {
             navigate('/login')
         } catch (error) {
             console.error('Registration error:', error)
-            const errorMessage = error.response?.data?.detail || 'Registration failed'
+            let errorMessage = 'Registration failed'
+            if (error.response?.data?.detail) {
+                if (typeof error.response.data.detail === 'string') {
+                    errorMessage = error.response.data.detail
+                } else if (Array.isArray(error.response.data.detail)) {
+                    errorMessage = error.response.data.detail.map(err => err.msg).join(', ')
+                } else {
+                    errorMessage = JSON.stringify(error.response.data.detail)
+                }
+            }
             toast.error(errorMessage)
         } finally {
             setLoading(false)
