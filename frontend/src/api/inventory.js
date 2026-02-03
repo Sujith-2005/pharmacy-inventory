@@ -12,7 +12,7 @@ export const inventoryApi = {
     console.log('DEBUG: Uploading file:', file.name, file.size)
 
     try {
-      const response = await apiClient.post('/inventory/upload', formData, {
+      const response = await apiClient.post('/api/inventory/upload', formData, {
         timeout: 300000, // 5 minutes for large files
       })
       console.log('DEBUG: Upload success:', response.data)
@@ -47,7 +47,7 @@ export const inventoryApi = {
 
   getMedicines: async (params) => {
     try {
-      const response = await apiClient.get('/inventory/medicines', { params })
+      const response = await apiClient.get('/api/inventory/medicines', { params })
       return response.data
     } catch (error) {
       console.warn('Network error, using mock data for medicines', error)
@@ -56,13 +56,13 @@ export const inventoryApi = {
   },
 
   getInventoryGrid: async (params) => {
-    const response = await apiClient.get('/inventory/grid', { params })
+    const response = await apiClient.get('/api/inventory/grid', { params })
     return response.data
   },
 
   getMedicine: async (id) => {
     try {
-      const response = await apiClient.get(`/inventory/medicines/${id}`)
+      const response = await apiClient.get(`/api/inventory/medicines/${id}`)
       return response.data
     } catch (error) {
       console.warn('Network error, using mock data for medicine details', error)
@@ -71,12 +71,12 @@ export const inventoryApi = {
   },
 
   getBatches: async (medicineId) => {
-    const response = await apiClient.get(`/inventory/medicines/${medicineId}/batches`)
+    const response = await apiClient.get(`/api/inventory/medicines/${medicineId}/batches`)
     return response.data
   },
 
   getStockLevels: async (lowStockOnly) => {
-    const response = await apiClient.get('/inventory/stock-levels', {
+    const response = await apiClient.get('/api/inventory/stock-levels', {
       params: { low_stock_only: lowStockOnly },
     })
     return response.data
@@ -84,7 +84,7 @@ export const inventoryApi = {
 
   getCategories: async () => {
     try {
-      const response = await apiClient.get('/inventory/categories')
+      const response = await apiClient.get('/api/inventory/categories')
       return response.data
     } catch (error) {
       console.warn('Network error, using default categories', error)
@@ -93,7 +93,7 @@ export const inventoryApi = {
   },
   getAIAnalysis: async () => {
     try {
-      const response = await apiClient.get('/inventory/ai-analysis')
+      const response = await apiClient.get('/api/inventory/ai-analysis')
       return response.data
     } catch (error) {
       console.warn('Network error, using mock AI data', error)
@@ -101,16 +101,16 @@ export const inventoryApi = {
     }
   },
   getAnalysisReport: async () => {
-    const response = await apiClient.get('/inventory/analysis-report')
+    const response = await apiClient.get('/api/inventory/analysis-report')
     return response.data
   },
   comparePrices: async (query) => {
-    const response = await apiClient.get('/inventory/price-comparison', { params: { query } })
+    const response = await apiClient.get('/api/inventory/price-comparison', { params: { query } })
     return response.data
   },
 
   deleteMedicine: async (id) => {
-    const response = await apiClient.delete(`/inventory/medicines/${id}`)
+    const response = await apiClient.delete(`/api/inventory/medicines/${id}`)
     return response.data
   }
 }

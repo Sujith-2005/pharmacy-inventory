@@ -2,12 +2,12 @@ import { apiClient } from './client'
 
 export const ordersApi = {
     createOrder: async (data) => {
-        const response = await apiClient.post('/orders/create', data)
+        const response = await apiClient.post('/api/orders/create', data)
         return response.data
     },
 
     uploadPrescription: async (formData) => {
-        const response = await apiClient.post('/orders/upload-prescription', formData, {
+        const response = await apiClient.post('/api/orders/upload-prescription', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -16,7 +16,7 @@ export const ordersApi = {
     },
 
     getOrders: async () => {
-        const response = await apiClient.get('/orders/')
+        const response = await apiClient.get('/api/orders/')
         return response.data
     }
 }

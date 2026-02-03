@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const API_BASE_URL =
   // @ts-ignore
-  import.meta.env.VITE_API_URL + "/api" || "http://localhost:8000/api"
+  import.meta.env.VITE_API_URL || "http://localhost:8000"
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

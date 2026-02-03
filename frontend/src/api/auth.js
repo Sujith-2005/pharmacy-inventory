@@ -7,7 +7,7 @@ export const authApi = {
     formData.append("password", password);
 
     const res = await apiClient.post(
-      "/auth/login",
+      "/api/auth/login",
       formData,
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
@@ -16,12 +16,12 @@ export const authApi = {
   },
 
   getMe: async () => {
-    const res = await apiClient.get("/auth/me");
+    const res = await apiClient.get("/api/auth/me");
     return res.data;
   },
 
   register: async (userData) => {
-    const res = await apiClient.post("/auth/register", userData);
+    const res = await apiClient.post("/api/auth/register", userData);
     return res.data;
   },
 };
