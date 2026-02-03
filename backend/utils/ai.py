@@ -1,5 +1,8 @@
-import google.generativeai as genai
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
+import google.generativeai as genai
 import logging
 import time
 
@@ -7,8 +10,8 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# HARDCODED KEY (Emergency Fix Strategy)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyDlZTrdIjjtRykAgC8_7Nwo_zalM4fLlgU"
+# ENV VAR ONLY
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Simple in-memory cache: { "prompt_hash": (timestamp, response) }
 _cache = {}
@@ -17,47 +20,35 @@ CACHE_TTL = 600  # 10 minutes cache for dashboard/reports
 def get_gemini_model():
     """
     Dynamically find a Gemini model that supports generateContent.
-    Prioritizes Flash/Lite models for quota efficiency.
+    Prioritizes Flash models (2.0 -> 1.5) for speed/cost.
     """
     if not GEMINI_API_KEY:
-        logger.error("No Gemini API Key found!")
+        logger.error("No Gemini API Key found in env!")
         return None
         
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        models = genai.list_models()
+        models = list(genai.list_models())
         
-        # Priority 1: Flash-Lite (Most efficient)
-        for m in models:
-            if "generateContent" in m.supported_generation_methods:
-                if "flash-lite" in m.name: 
-                    logger.info(f"Selected Model: {m.name}")
-                    return genai.GenerativeModel(m.name)
+        # Priority Order: 1.5-flash is most stable/generous for Free Tier
+        priorities = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
         
-        # Priority 2: Flash (Standard)
-        for m in models:
-            if "generateContent" in m.supported_generation_methods:
-                if "flash" in m.name: 
-                    logger.info(f"Selected Model: {m.name}")
-                    return genai.GenerativeModel(m.name)
-        
-        # Priority 3: Pro
-        for m in models:
-            if "generateContent" in m.supported_generation_methods:
-                if "pro" in m.name: 
-                    logger.info(f"Selected Model: {m.name}")
+        for priority in priorities:
+            for m in models:
+                if priority in m.name and "generateContent" in m.supported_generation_methods:
+                    logger.info(f"Selected AI Model: {m.name}")
                     return genai.GenerativeModel(m.name)
 
-        # Fallback: Anything
+        # Fallback to any 'generateContent' model
         for m in models:
             if "generateContent" in m.supported_generation_methods:
-                logger.info(f"Selected Model (Fallback): {m.name}")
+                logger.info(f"Selected Fallback AI Model: {m.name}")
                 return genai.GenerativeModel(m.name)
                 
     except Exception as e:
         logger.error(f"Failed to configure Gemini: {e}")
-        # Extreme fallback to hardcoded name if listing fails
-        return genai.GenerativeModel('gemini-2.0-flash-lite')
+        # Extreme fallback used in testing
+        return genai.GenerativeModel('gemini-1.5-flash')
         
     return None
 

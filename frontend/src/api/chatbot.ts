@@ -19,8 +19,8 @@ export const chatbotApi = {
       const response = await apiClient.post('/chatbot/chat', message)
       return response.data
     } catch (error) {
-      console.warn('Chatbot network error, using mock', error)
-      return mockChatbotResponse as ChatResponse
+      console.error('Chatbot API Error:', error)
+      throw error
     }
   },
 

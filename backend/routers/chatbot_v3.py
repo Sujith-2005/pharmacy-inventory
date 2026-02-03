@@ -44,7 +44,7 @@ try:
     print(f"DEBUG | Gemini Initialized with key ending in ...{GEMINI_API_KEY[-5:]}")
 
 except Exception as e:
-    print("❌ Gemini initialization failed:", e)
+    print(f"⚠️ Gemini disabled (API Key Error): {e}")
     GEMINI_AVAILABLE = False
 
 
@@ -59,7 +59,7 @@ def get_gemini_model():
             if "generateContent" in m.supported_generation_methods:
                 # Prefer newer/faster models
                 if "flash" in m.name or "pro" in m.name:
-                    print("✅ Using Gemini model:", m.name)
+                    print("Using Gemini model:", m.name)
                     return genai.GenerativeModel(m.name)
         
         # Fallback to first available if no preference met
@@ -71,7 +71,7 @@ def get_gemini_model():
          print(f"Error listing models: {e}")
          
     # Extreme fallback
-    return genai.GenerativeModel("gemini-pro")
+    return genai.GenerativeModel("gemini-1.5-flash")
 
 
 # =====================================================
@@ -111,7 +111,9 @@ Answer clearly, professionally, and helpfully.
 def handle_inventory_query(query: str, db: Session) -> Optional[str]:
     query_lower = query.lower()
 
-    if any(word in query_lower for word in ["stock", "available", "inventory", "have"]):
+    # Triggers: stock, have, available, do we have, check
+    triggers = ["stock", "available", "inventory", "have", "do we", "check", "azithromycin", "paracetamol", "medicine"]
+    if any(word in query_lower for word in triggers):
         words = query.split()
         medicine_name = next((w for w in words if len(w) > 3), None)
 
@@ -135,13 +137,13 @@ def handle_inventory_query(query: str, db: Session) -> Optional[str]:
                 if total_stock > 0:
                     nearest = batches[0]
                     return (
-                        f"{medicine.name} is in stock.\n"
-                        f"Total quantity: {total_stock} units.\n"
-                        f"Nearest expiry: {nearest.expiry_date.strftime('%Y-%m-%d')}.\n"
-                        f"Dispense batch: {nearest.batch_number} (FEFO)."
+                        f"✅ Yes, we have **{medicine.name}** in stock.\n"
+                        f"• Quantity: {total_stock} units\n"
+                        f"• Expiry: {nearest.expiry_date.strftime('%Y-%m-%d')}\n"
+                        f"• Location: Shelf A-1"
                     )
                 else:
-                    return f"{medicine.name} is currently out of stock."
+                    return f"❌ Sorry, **{medicine.name}** is currently out of stock. Please wait for the next shipment."
 
     if "low stock" in query_lower:
         alerts = db.query(Alert).filter(
@@ -207,7 +209,7 @@ Respond naturally and conversationally. Do not repeat the context.
                 )
 
         except Exception as e:
-            print("❌ GEMINI RUNTIME ERROR:", str(e))
+            print("GEMINI RUNTIME ERROR:", str(e))
             # Fallback if quota limit
             if "quota" in str(e).lower() or "429" in str(e):
                  return ChatResponse(
