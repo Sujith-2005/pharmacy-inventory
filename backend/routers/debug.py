@@ -12,6 +12,27 @@ from auth import get_current_active_user
 
 router = APIRouter()
 
+@router.post("/create-test-user")
+def create_test_user(db: Session = Depends(get_db)):
+    email = "admin@pharmacy.com"
+    password = "admin123"
+
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        return {"message": "User already exists"}
+
+    new_user = User(
+        email=email,
+        hashed_password=get_password_hash(password),
+        is_active=True
+    )
+
+    db.add(new_user)
+    db.commit()
+    return {
+        "email": email,
+        "password": password
+    }
 
 @router.get("/debug/inventory-state")
 async def get_inventory_state(
@@ -76,3 +97,5 @@ async def get_inventory_state(
         "sample_medicines": medicines_data,
         "recent_batches": recent_batches_data
     }
+
+

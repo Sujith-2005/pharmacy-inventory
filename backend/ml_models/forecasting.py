@@ -30,8 +30,8 @@ def calculate_demand_forecast(db: Session, medicine_id: int, horizon_days: int =
             "reasoning": "Medicine not found"
         }
     
-    # Get historical transactions (last 90 days)
-    cutoff_date = datetime.now() - timedelta(days=90)
+    # Get historical transactions (last 3 years/1000 days to include older demo data)
+    cutoff_date = datetime.now() - timedelta(days=1500)
     transactions = db.query(InventoryTransaction).filter(
         InventoryTransaction.medicine_id == medicine_id,
         InventoryTransaction.transaction_type == TransactionType.OUT,

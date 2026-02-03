@@ -12,6 +12,32 @@ from models import Batch, Medicine, InventoryTransaction, TransactionType
 from auth import get_current_active_user
 
 router = APIRouter()
+from utils.ai import generate_ai_response
+
+@router.get("/ai-analysis")
+async def get_waste_ai_analysis(db: Session = Depends(get_db)):
+    """Get AI analysis of waste data"""
+    # Reuse existing analytics logic logic or simpler query
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=90)
+    
+    analytics = await get_waste_analytics(start_date, end_date, None, db)
+    
+    prompt = (
+        f"Act as a Sustainability & Financial Auditor. Analyze this pharmacy waste data (Last 90 Days):\n"
+        f"- Expired Inventory Loss: ₹{analytics['expired']['value']} ({analytics['expired']['count']} batches)\n"
+        f"- Damaged Inventory Loss: ₹{analytics['damaged']['value']}\n"
+        f"- Overall Wastage Ratio: {analytics['total']['wastage_rate_percent']}%\n\n"
+        f"Provide a tactical Waste Reduction Plan:\n"
+        f"1. **Root Cause Analysis**: Is the waste driven more by expiration (poor forecasting) or damage (handling issues)?\n"
+        f"2. **Wastage by Category**: Provide a breakdown of which medicine categories (Antibiotics, Pain Relief, etc.) are contributing most to waste.\n"
+        f"3. **Financial Recovery**: Estimate potential annual savings if wastage is reduced by 50%.\n"
+        f"4. **Action Items**: Suggest 2 specific protocols (e.g., 'Implement FEFO visual tags', 'Supplier return policy review').\n"
+        f"FORMAT RULE: Do NOT use asterisks (*), bolding (**), or markdown. Use standard numbered lists (1., 2.) only. Plain text."
+    )
+    
+    return {"analysis": generate_ai_response(prompt)}
+
 
 
 @router.get("/analytics")
@@ -21,93 +47,106 @@ async def get_waste_analytics(
     category: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Get waste analytics"""
+    """Get waste analytics from Inventory Transactions and Current Expired Stock"""
     if not end_date:
         end_date = datetime.now()
     if not start_date:
         start_date = end_date - timedelta(days=90)
     
-    # Expired stock
-    expired_batches = db.query(Batch).filter(
-        Batch.is_expired == True,
-        Batch.expiry_date >= start_date,
-        Batch.expiry_date <= end_date
+    # 1. Get Historical Waste from Transactions
+    waste_transactions = db.query(InventoryTransaction).filter(
+        InventoryTransaction.transaction_type.in_([
+            TransactionType.EXPIRED, 
+            TransactionType.DAMAGED, 
+            TransactionType.RECALLED, 
+            TransactionType.RETURN
+        ]),
+        InventoryTransaction.created_at >= start_date,
+        InventoryTransaction.created_at <= end_date
     )
     
     if category:
-        expired_batches = expired_batches.join(Medicine).filter(Medicine.category == category)
+        waste_transactions = waste_transactions.join(Medicine).filter(Medicine.category == category)
+        
+    waste_transactions = waste_transactions.all()
     
-    expired_batches = expired_batches.all()
+    # Aggregators
+    expired_val = 0.0
+    expired_qty = 0
     
-    expired_value = sum([
-        b.quantity * (b.medicine.mrp or 0) for b in expired_batches
-    ])
-    expired_quantity = sum([b.quantity for b in expired_batches])
+    damaged_val = 0.0
+    damaged_qty = 0
     
-    # Damaged stock
-    damaged_batches = db.query(Batch).filter(
+    recalled_val = 0.0
+    recalled_qty = 0
+    
+    returned_val = 0.0
+    returned_qty = 0
+    
+    # Sum up transactions
+    for tx in waste_transactions:
+        # Use transaction unit price if available, else medicine MRP
+        price = tx.unit_price if tx.unit_price is not None else (tx.medicine.mrp or 0)
+        value = tx.quantity * price
+        
+        if tx.transaction_type == TransactionType.EXPIRED:
+            expired_val += value
+            expired_qty += tx.quantity
+        elif tx.transaction_type == TransactionType.DAMAGED:
+            damaged_val += value
+            damaged_qty += tx.quantity
+        elif tx.transaction_type == TransactionType.RECALLED:
+            recalled_val += value
+            recalled_qty += tx.quantity
+        elif tx.transaction_type == TransactionType.RETURN:
+            returned_val += value
+            returned_qty += tx.quantity
+
+    # 2. Add Current Inventory that is Expired (Current Liability)
+    # Include ALL currently held expired stock regardless of date window
+    current_expired_batches = db.query(Batch).filter(
+        Batch.quantity > 0,
+        Batch.is_expired == True 
+    )
+    
+    if category:
+        current_expired_batches = current_expired_batches.join(Medicine).filter(Medicine.category == category)
+        
+    for batch in current_expired_batches.all():
+        value = batch.quantity * (batch.medicine.mrp or 0)
+        expired_val += value
+        expired_qty += batch.quantity
+
+    # 3. Add Current Inventory that is marked Damaged/Recalled (if any remaining in stock)
+    # Note: Usually damaged items are removed via transaction, but if they exist in batch with flag:
+    current_damaged_batches = db.query(Batch).filter(
+        Batch.quantity > 0,
         Batch.is_damaged == True,
         Batch.updated_at >= start_date,
         Batch.updated_at <= end_date
     )
-    
     if category:
-        damaged_batches = damaged_batches.join(Medicine).filter(Medicine.category == category)
+        current_damaged_batches = current_damaged_batches.join(Medicine).filter(Medicine.category == category)
+        
+    for batch in current_damaged_batches.all():
+        value = batch.quantity * (batch.medicine.mrp or 0)
+        damaged_val += value
+        damaged_qty += batch.quantity
+
+    total_waste_value = expired_val + damaged_val + recalled_val
+    total_waste_quantity = expired_qty + damaged_qty + recalled_qty + returned_qty
     
-    damaged_batches = damaged_batches.all()
-    
-    damaged_value = sum([
-        b.quantity * (b.medicine.mrp or 0) for b in damaged_batches
-    ])
-    damaged_quantity = sum([b.quantity for b in damaged_batches])
-    
-    # Recalled stock
-    recalled_batches = db.query(Batch).filter(
-        Batch.is_recalled == True,
-        Batch.updated_at >= start_date,
-        Batch.updated_at <= end_date
-    )
-    
-    if category:
-        recalled_batches = recalled_batches.join(Medicine).filter(Medicine.category == category)
-    
-    recalled_batches = recalled_batches.all()
-    
-    recalled_value = sum([
-        b.quantity * (b.medicine.mrp or 0) for b in recalled_batches
-    ])
-    recalled_quantity = sum([b.quantity for b in recalled_batches])
-    
-    # Returned stock
-    returned_batches = db.query(Batch).filter(
-        Batch.is_returned == True,
-        Batch.updated_at >= start_date,
-        Batch.updated_at <= end_date
-    )
-    
-    if category:
-        returned_batches = returned_batches.join(Medicine).filter(Medicine.category == category)
-    
-    returned_batches = returned_batches.all()
-    
-    returned_value = sum([
-        b.quantity * (b.medicine.mrp or 0) for b in returned_batches
-    ])
-    returned_quantity = sum([b.quantity for b in returned_batches])
-    
-    total_waste_value = expired_value + damaged_value + recalled_value
-    total_waste_quantity = expired_quantity + damaged_quantity + recalled_quantity + returned_quantity
-    
-    # Get total inventory value for wastage rate
-    total_inventory_value = db.query(func.sum(Batch.quantity * Medicine.mrp)).join(
+    # 4. Calculate Total Inventory Value (Current Stock) for Wastage Rate
+    # Rate = Total Waste / (Total Current Inventory + Total Waste) * 100
+    # This represents the % of total assets that were wasted
+    current_inventory_value = db.query(func.sum(Batch.quantity * Medicine.mrp)).join(
         Medicine
     ).filter(
-        Batch.is_expired == False,
-        Batch.is_damaged == False,
-        Batch.is_recalled == False
-    ).scalar() or 0
+        Batch.quantity > 0
+    ).scalar() or 0.0
     
-    wastage_rate = (total_waste_value / total_inventory_value * 100) if total_inventory_value > 0 else 0
+    denominator = current_inventory_value + total_waste_value
+    wastage_rate = (total_waste_value / denominator * 100) if denominator > 0 else 0.0
     
     return {
         "period": {
@@ -115,24 +154,24 @@ async def get_waste_analytics(
             "end_date": end_date.isoformat()
         },
         "expired": {
-            "quantity": expired_quantity,
-            "value": expired_value,
-            "count": len(expired_batches)
+            "quantity": expired_qty,
+            "value": expired_val,
+            "count": 0 # Count is less relevant when mixing transactions and batches
         },
         "damaged": {
-            "quantity": damaged_quantity,
-            "value": damaged_value,
-            "count": len(damaged_batches)
+            "quantity": damaged_qty,
+            "value": damaged_val,
+            "count": 0
         },
         "recalled": {
-            "quantity": recalled_quantity,
-            "value": recalled_value,
-            "count": len(recalled_batches)
+            "quantity": recalled_qty,
+            "value": recalled_val,
+            "count": 0
         },
         "returned": {
-            "quantity": returned_quantity,
-            "value": returned_value,
-            "count": len(returned_batches)
+            "quantity": returned_qty,
+            "value": returned_val,
+            "count": 0
         },
         "total": {
             "quantity": total_waste_quantity,

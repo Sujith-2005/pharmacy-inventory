@@ -13,6 +13,35 @@ from ml_models.forecasting import calculate_demand_forecast, batch_forecast_all_
 from auth import get_current_active_user
 
 router = APIRouter()
+from utils.ai import generate_ai_response
+
+@router.get("/ai-analysis")
+async def get_forecasting_ai_analysis(db: Session = Depends(get_db)):
+    """Get AI analysis of demand forecast"""
+    # Get critical suggestions
+    suggestions = await get_reorder_suggestions(critical_only=True, db=db)
+    
+    if not suggestions:
+        return {"analysis": "Inventory is healthy. No immediate purchasing actions required."}
+
+    context = "\n".join([
+        f"- {s['medicine_name']}: Stock {s['current_stock']}, Recommended {s['recommended_quantity']} (Priority: {s['priority']})"
+        for s in suggestions[:10]
+    ])
+    
+    prompt = (
+        f"Act as a Senior Supply Chain Analyst. Analyze these critical reorder suggestions:\n{context}\n\n"
+        f"Develop a Strategic Purchasing Plan:\n"
+        f"1. **Sales & Consumption Trends**: Identify high-velocity items and increasing usage trends.\n"
+        f"2. **Triage Criticalities**: Identify which items pose an immediate risk to patient care (Stockouts).\n"
+        f"3. **Cash Flow Optimization**: Suggest which 'At Risk' items can wait versus which need immediate capital allocation.\n"
+        f"4. **Bulk Opportunity**: Identify if any items can be grouped for supplier negotiation (e.g., same category/manufacturer).\n"
+        f"Be concise and directive.\n"
+        f"FORMAT RULE: Do NOT use asterisks (*), bolding (**), or markdown. Use standard numbered lists (1., 2.) only. Plain text."
+    )
+    
+    return {"analysis": generate_ai_response(prompt)}
+
 
 
 @router.get("/medicine/{medicine_id}", response_model=dict)
@@ -69,8 +98,12 @@ async def get_reorder_suggestions(
     for medicine in medicines:
         forecast_data = calculate_demand_forecast(db, medicine.id)
         
-        # Get current stock
-        current_stock = sum([b.quantity for b in medicine.batches if not b.is_expired])
+        # Get current stock details
+        total_stock = sum([b.quantity for b in medicine.batches])
+        valid_stock = sum([b.quantity for b in medicine.batches if not b.is_expired])
+        expired_stock = total_stock - valid_stock
+        
+        current_stock = valid_stock # Logic still uses sellable stock for priority decision
         
         # Determine priority
         if current_stock == 0 and forecast_data['forecasted_demand'] > 0:
@@ -90,7 +123,9 @@ async def get_reorder_suggestions(
             "medicine_name": medicine.name,
             "sku": medicine.sku,
             "category": medicine.category,
-            "current_stock": current_stock,
+            "current_stock": valid_stock, # Sellable
+            "total_physical_stock": total_stock,
+            "expired_stock": expired_stock,
             "priority": priority,
             **forecast_data
         })

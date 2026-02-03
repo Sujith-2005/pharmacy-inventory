@@ -1,0 +1,6 @@
+@echo off
+echo Killing processes on port 8000 (standard)...
+for /f "tokens=5" %%a in ('netstat -aon ^| find ":8000" ^| find "LISTENING"') do taskkill /f /pid %%a
+echo Killing processes on port 8001 (hackathon)...
+for /f "tokens=5" %%a in ('netstat -aon ^| find ":8001" ^| find "LISTENING"') do taskkill /f /pid %%a
+echo Done.

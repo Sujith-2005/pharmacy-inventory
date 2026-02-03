@@ -23,36 +23,33 @@ export const inventoryApi = {
   uploadFile: async (file: File) => {
     const formData = new FormData()
     formData.append('file', file)
-    const response = await apiClient.post('/api/inventory/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
+    // Removed /api prefix as it is already in baseURL
+    const response = await apiClient.post('/inventory/upload', formData)
     return response.data
   },
-  
+
   uploadExcel: async (file: File) => {
     // Legacy endpoint for backward compatibility
     return inventoryApi.uploadFile(file)
   },
 
   getMedicines: async (params?: { category?: string; search?: string }) => {
-    const response = await apiClient.get('/api/inventory/medicines', { params })
+    const response = await apiClient.get('/inventory/medicines', { params })
     return response.data
   },
 
   getMedicine: async (id: number) => {
-    const response = await apiClient.get(`/api/inventory/medicines/${id}`)
+    const response = await apiClient.get(`/inventory/medicines/${id}`)
     return response.data
   },
 
   getBatches: async (medicineId: number) => {
-    const response = await apiClient.get(`/api/inventory/medicines/${medicineId}/batches`)
+    const response = await apiClient.get(`/inventory/medicines/${medicineId}/batches`)
     return response.data
   },
 
   getStockLevels: async (lowStockOnly?: boolean) => {
-    const response = await apiClient.get('/api/inventory/stock-levels', {
+    const response = await apiClient.get('/inventory/stock-levels', {
       params: { low_stock_only: lowStockOnly },
     })
     return response.data

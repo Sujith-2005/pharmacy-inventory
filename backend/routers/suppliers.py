@@ -13,6 +13,29 @@ from schemas import SupplierCreate, SupplierResponse, PurchaseOrderCreate, Purch
 from auth import get_current_active_user
 
 router = APIRouter()
+from utils.ai import generate_ai_response
+
+@router.get("/ai-analysis")
+async def get_suppliers_ai_analysis(db: Session = Depends(get_db)):
+    """Get AI analysis of supply chain risks"""
+    suppliers = db.query(Supplier).all()
+    
+    context = "\n".join([
+        f"- {s.name}: Lead Time {s.lead_time_days} days, Active: {s.is_active}"
+        for s in suppliers
+    ])
+    
+    prompt = (
+        f"Act as a Head of Procurement. Analyze this supplier network portfolio:\n{context}\n\n"
+        f"Provide a Vendor Optimization Strategy:\n"
+        f"1. **Risk Assessment**: Identify valid single-points-of-failure or high-lead-time risks.\n"
+        f"2. **Performance Gaps**: Highlight any active vendors that are underperforming benchmarks.\n"
+        f"3. **Diversification Recommendation**: Suggest categories where adding a second source is critical for resilience.\n"
+        f"FORMAT RULE: Do NOT use asterisks (*), bolding (**), or markdown. Use standard numbered lists (1., 2.) only. Plain text."
+    )
+    
+    return {"analysis": generate_ai_response(prompt)}
+
 
 
 @router.get("/", response_model=List[SupplierResponse])
@@ -70,6 +93,23 @@ async def update_supplier(
     db.commit()
     db.refresh(db_supplier)
     return db_supplier
+
+
+@router.delete("/{supplier_id}")
+async def delete_supplier(
+    supplier_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_active_user)
+):
+    """Delete supplier"""
+    db_supplier = db.query(Supplier).filter(Supplier.id == supplier_id).first()
+    if not db_supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    db.delete(db_supplier)
+    db.commit()
+    
+    return {"message": "Supplier deleted successfully"}
 
 
 @router.post("/purchase-orders", response_model=PurchaseOrderResponse)

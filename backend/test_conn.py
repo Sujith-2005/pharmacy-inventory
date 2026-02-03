@@ -2,8 +2,8 @@ import requests
 import json
 import time
 
-BASE_URL = "https://pharmacy-inventory-backend.onrender.com"
-# BASE_URL = "http://localhost:8000" # Uncomment to test local if running
+# BASE_URL = "https://pharmacy-inventory-backend.onrender.com"
+BASE_URL = "http://localhost:8000" # Uncomment to test local if running
 
 print(f"Testing connectivity to: {BASE_URL}")
 

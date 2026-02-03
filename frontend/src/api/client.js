@@ -1,16 +1,13 @@
-import axios from 'axios'
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://pharmacy-inventory-backend.onrender.com'
+import axios from "axios";
 
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,   // MUST be backend root only
-})
+  baseURL: "http://localhost:8000/api",
+});
 
-// Attach token
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem("token");
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    config.headers.Authorization = `Bearer ${token}`;
   }
-  return config
-})
+  return config;
+});

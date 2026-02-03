@@ -45,5 +45,15 @@ export function useAuth() {
     window.location.href = '/login'
   }
 
-  return { user, loading, login, logout }
+  const register = async (userData) => {
+    try {
+      await authApi.register(userData)
+      // Auto login after registration
+      await login(userData.email, userData.password)
+    } catch (error) {
+      throw error
+    }
+  }
+
+  return { user, loading, login, logout, register }
 }

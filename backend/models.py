@@ -185,3 +185,16 @@ class Forecast(Base):
     medicine = relationship("Medicine")
 
 
+class PrescriptionOrder(Base):
+    __tablename__ = "prescription_orders"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    customer_name = Column(String, nullable=False)
+    contact_info = Column(String, nullable=False) # Phone or Email
+    notification_method = Column(String, default="whatsapp") # whatsapp, email, sms
+    prescription_image_path = Column(String, nullable=True) # Path to uploaded file
+    notes = Column(Text, nullable=True)
+    status = Column(String, default="pending") # pending, processed, completed, cancelled
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

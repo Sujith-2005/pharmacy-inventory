@@ -13,6 +13,33 @@ from auth import get_current_active_user
 from config import settings
 
 router = APIRouter()
+from utils.ai import generate_ai_response
+
+@router.get("/ai-insights")
+async def get_dashboard_insights(db: Session = Depends(get_db)):
+    """Get AI-powered executive summary of dashboard stats"""
+    # 1. Gather raw stats
+    stats = await get_dashboard_stats(db)
+    
+    # 2. Construct Prompt
+    prompt = (
+        f"Act as a Chief Strategy Officer for a pharmacy chain. Analyze these real-time operational metrics:\n"
+        f"- Total Stock Value: ₹{stats.total_stock_value:,.2f}\n"
+        f"- Low Stock Items: {stats.low_stock_count} (Immediate Risk)\n"
+        f"- Expiring Soon: {stats.expiring_soon_count} (Potential Loss)\n"
+        f"- Active Alerts: {stats.total_alerts}\n"
+        f"- Recent Wastage (30 days): ₹{stats.wastage_value:,.2f}\n\n"
+        f"Provide a high-impact Executive Summary (3-4 bullet points):\n"
+        f"1. **Financial Health**: Assess stock efficiency and wastage impact.\n"
+        f"2. **Operational Risk**: Highlight critical bottlenecks (low stock/alerts).\n"
+        f"3. **Strategic Action**: Recommend one high-leverage move to improve profitability immediately.\n"
+        f"Tone: Professional, Insightful, and Action-Oriented.\n"
+        f"FORMAT RULE: Do NOT use asterisks (*), bolding (**), or markdown. Use standard numbered lists (1., 2.) only."
+    )
+    
+    # 3. Generate
+    return {"insight": generate_ai_response(prompt)}
+
 
 
 @router.get("/stats", response_model=DashboardStats)

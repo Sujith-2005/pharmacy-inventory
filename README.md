@@ -1,319 +1,150 @@
 # 🏥 Smart Pharmacy Inventory Management System
 
-A comprehensive, AI-powered pharmacy inventory management system built with FastAPI (backend) and React + TypeScript (frontend). This system helps pharmacies manage inventory, forecast demand, track expiry dates, and reduce waste through intelligent automation.
+A professional, AI-powered pharmacy inventory management system built with **FastAPI** (Python) and **React** (TypeScript). This application is designed for efficient inventory tracking, demand forecasting, and waste reduction.
 
-## ✨ Features
+---
 
-- **📦 Inventory Management**: Complete CRUD operations for medicines, batches, and transactions
-- **🤖 AI-Powered Demand Forecasting**: ML-based demand prediction to optimize stock levels
-- **⚠️ Smart Alerts**: Automated alerts for low stock, expiry warnings, and critical situations
-- **📊 Analytics Dashboard**: Real-time insights into inventory health, stock value, and trends
-- **🗑️ Waste Analytics**: Track and analyze medicine waste to reduce losses
-- **💬 AI Chatbot with Gemini Flash**: Interactive chatbot powered by Google Gemini Flash for general queries and inventory assistance
-- **📤 Multi-Format File Upload**: Professional drag-and-drop file upload supporting Excel (.xlsx, .xls), CSV (.csv), and JSON (.json) formats with real-time validation and error reporting
-- **👥 Multi-User Support**: Role-based access control (Admin, Manager, Pharmacist, Owner)
-- **🔐 Secure Authentication**: JWT-based authentication system
+## ✨ Key Features
+
+- **📦 Inventory Management**: Full control over stock, batches, and suppliers.
+- **🤖 AI Forecasting**: Machine learning models to predict demand and optimize stock.
+- **⚡ Real-time Alerts**: Notifications for low stock and expiry dates.
+- **📊 Analytics Dashboard**: Visual insights into sales, waste, and inventory health.
+- **📤 Smart Data Import**: Drag-and-drop Excel/CSV/JSON uploads with validation.
+- **🔐 Secure Access**: Role-based authentication (Admin, Manager, Pharmacist).
+
+---
 
 ## 🛠️ Tech Stack
 
-### Backend
-- **FastAPI** - Modern Python web framework
-- **SQLAlchemy** - ORM for database operations
-- **SQLite/PostgreSQL** - Database support
-- **Pydantic** - Data validation
-- **JWT** - Authentication
-- **Pandas** - Data processing for Excel imports
+- **Backend**: Python 3.8+, FastAPI, SQLAlchemy, SQLite/PostgreSQL, Pandas, Scikit-learn
+- **Frontend**: Node.js 16+, React 18, TypeScript, Vite, Tailwind CSS, Recharts
 
-### Frontend
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **Tailwind CSS** - Styling
-- **React Router** - Navigation
-- **Axios** - HTTP client
-- **Recharts** - Data visualization
-- **React Query** - Data fetching
+---
 
-## 📋 Prerequisites
+## 🚀 Quick Start (Local Development)
 
-- Python 3.8+ 
-- Node.js 16+ and npm
-- Git
+Follow these steps to get the application running on your local machine.
 
-## 🚀 Quick Start
+### Prerequisites
+- [Python 3.8+](https://www.python.org/downloads/)
+- [Node.js 16+](https://nodejs.org/)
+- [Git](https://git-scm.com/)
 
-### Automated Installation (Windows PowerShell)
+### 1. Backend Setup
 
-```powershell
-.\install-all.ps1
-```
-
-This script will:
-- ✅ Check Python and Node.js installations
-- ✅ Create Python virtual environment
-- ✅ Install all backend dependencies
-- ✅ Install all frontend dependencies
-
-### Manual Installation
-
-#### 1. Backend Setup
+Open a terminal in the `backend` folder:
 
 ```bash
-# Navigate to backend directory
 cd backend
 
-# Create virtual environment
+# Create a virtual environment
 python -m venv venv
 
-# Activate virtual environment
-# On Windows:
+# Activate (Windows)
 venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
+# Activate (Mac/Linux)
+# source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Copy environment file
-copy .env.example .env  # Windows
-# or
-cp .env.example .env    # macOS/Linux
+# Setup Environment Variables
+# Copy the example file. Update keys if needed.
+copy .env.example .env
 
-# Initialize database
+# Initialize the Database
 python init_db.py
 
-# Run the server
+# Start the Server
 uvicorn main:app --reload
 ```
+*The backend API will run at `http://localhost:8000`. API Docs: `http://localhost:8000/docs`*
 
-The backend API will be available at `http://localhost:8000`
-- API Documentation: `http://localhost:8000/docs`
-- Alternative docs: `http://localhost:8000/redoc`
+### 2. Frontend Setup
 
-#### 2. Frontend Setup
+Open a new terminal in the `frontend` folder:
 
 ```bash
-# Navigate to frontend directory (in a new terminal)
 cd frontend
 
 # Install dependencies
 npm install
 
-# Start development server
+# Start the development server
 npm run dev
 ```
+*The frontend will run at `http://localhost:5173` (or the port shown in terminal).*
 
-The frontend will be available at `http://localhost:3000`
+---
 
-### 3. Default Login Credentials
+## 📦 Deployment Guide
 
-- **Admin Account**:
-  - Email: `admin@pharmacy.com`
-  - Password: `admin123`
+This project is ready for deployment on modern cloud platforms.
 
-- **Manager Account**:
-  - Email: `manager@pharmacy.com`
-  - Password: `manager123`
+### 🌐 Frontend Deployment (Vercel)
+
+1.  Push your code to **GitHub**.
+2.  Go to [Vercel](https://vercel.com) and **Add New Project**.
+3.  Import your repository.
+4.  **Configure Project**:
+    -   **Root Directory**: `frontend`
+    -   **Framework Preset**: `Vite`
+    -   **Build Command**: `npm run build`
+    -   **Output Directory**: `dist`
+5.  **Environment Variables**:
+    -   Add `VITE_API_URL` with your deployed backend URL (e.g., `https://my-backend.railway.app`).
+6.  **Deploy**.
+
+### ⚙️ Backend Deployment (Railway/Render)
+
+**Recommended: Railway**
+
+1.  Sign up at [Railway.app](https://railway.app).
+2.  **New Project** -> **Deploy from GitHub repo**.
+3.  Select `backend` as the Root Directory if prompted (or configure in settings).
+4.  **Settings**:
+    -   **Build Command**: `pip install -r requirements.txt`
+    -   **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+5.  **Variables**: Add the contents of your `.env` file (DATABASE_URL, SECRET_KEY, etc.).
+    -   *Note*: For production, use a PostgreSQL database service (Railway provides one) instead of SQLite. Update `DATABASE_URL` to the Postgres connection string.
+
+---
+
+## 🔧 Troubleshooting
+
+### Login Issues
+-   **Default Admin**: `admin@pharmacy.com` / `admin123`
+-   **Default Manager**: `manager@pharmacy.com` / `manager123`
+-   If login fails, ensure the backend is running and `python init_db.py` was executed.
+
+### "Module not found"
+-   Ensure your virtual environment is activated (`venv\Scripts\activate`) before running `pip install` or starting the server.
+-   Ensure you are in the correct directory (`backend/`).
+
+### Frontend API Connection Error
+-   Check if the backend is running on `http://localhost:8000`.
+-   Verify `VITE_API_URL` in `frontend/.env` (or creates `.env.development` with `VITE_API_URL=http://localhost:8000`).
+
+---
 
 ## 📁 Project Structure
 
 ```
 pharmacy-inventory/
-├── backend/
-│   ├── main.py                 # FastAPI application entry point
-│   ├── models.py               # SQLAlchemy database models
-│   ├── schemas.py              # Pydantic schemas for validation
-│   ├── auth.py                 # Authentication utilities
-│   ├── database.py             # Database configuration
-│   ├── config.py               # Application settings
-│   ├── init_db.py              # Database initialization script
-│   ├── requirements.txt        # Python dependencies
-│   ├── .env.example            # Environment variables template
-│   ├── routers/                # API route handlers
-│   │   ├── auth.py
-│   │   ├── inventory.py
-│   │   ├── forecasting.py
-│   │   ├── alerts.py
-│   │   ├── waste.py
-│   │   ├── dashboard.py
-│   │   ├── chatbot.py
-│   │   └── suppliers.py
-│   └── ml_models/              # Machine learning models
-│       ├── categorization.py
-│       └── forecasting.py
-├── frontend/
+├── backend/            # FastAPI Backend
+│   ├── main.py
+│   ├── models.py
+│   ├── routers/        # API Endpoints
+│   └── ml_models/      # AI/ML Logic
+├── frontend/           # React Frontend
 │   ├── src/
-│   │   ├── pages/              # Page components
-│   │   ├── components/         # Reusable components
-│   │   ├── api/                # API client functions
-│   │   ├── hooks/              # Custom React hooks
-│   │   └── utils/              # Utility functions
-│   ├── package.json
-│   └── vite.config.ts
-├── .gitignore
-├── README.md
-├── LICENSE
-├── vercel.json                 # Vercel deployment config
-└── install-all.ps1             # Automated installation script
+│   │   ├── pages/
+│   │   └── components/
+├── data/               # Sample data files & templates
+├── scripts/            # Utility & Maintenance scripts
+└── README.md           # This file
 ```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Copy `backend/.env.example` to `backend/.env` and configure:
-
-- `DATABASE_URL`: Database connection string (default: SQLite)
-- `SECRET_KEY`: Secret key for JWT tokens (change in production!)
-- `CORS_ORIGINS`: Allowed frontend origins
-- `DEBUG`: Enable/disable debug mode
-
-See `backend/.env.example` for all available options.
-
-## 📤 File Upload Feature
-
-The system supports professional file uploads with the following features:
-
-### Supported Formats
-- **Excel**: `.xlsx`, `.xls` files
-- **CSV**: `.csv` files (UTF-8 encoded)
-- **JSON**: `.json` files (array of objects or object with `items` property)
-
-### Required Columns
-Your upload file must include these columns (case-insensitive, with flexible naming):
-- `SKU` / `sku` - Unique medicine identifier
-- `Medicine Name` / `medicine_name` / `name` - Medicine name
-- `Batch No` / `batch_no` / `batch` - Batch number
-- `Quantity` / `quantity` / `qty` - Stock quantity
-- `Expiry Date` / `expiry_date` / `expiry` - Expiry date (YYYY-MM-DD format)
-
-### Optional Columns
-- `Manufacturer` / `manufacturer`
-- `Brand` / `brand`
-- `MRP` / `mrp` - Maximum Retail Price
-- `Cost` / `cost` - Purchase cost
-- `Purchase Date` / `purchase_date` - Purchase date
-- `Purchase Price` / `purchase_price` - Purchase price
-- `Schedule` / `schedule` - Medicine schedule (e.g., Schedule H, OTC)
-- `Storage Requirements` / `storage_requirements` / `storage` - Storage conditions
-
-### Features
-- **Drag & Drop Interface**: Intuitive file upload with visual feedback
-- **Template Downloads**: Download pre-formatted templates in Excel, CSV, or JSON
-- **Real-time Validation**: Instant feedback on file format and data quality
-- **Progress Tracking**: Visual progress indicator during upload
-- **Detailed Error Reporting**: Row-by-row error messages with line numbers
-- **Warning System**: Alerts for expired batches, missing data, etc.
-- **Auto-categorization**: AI-powered medicine categorization on upload
-- **Batch Management**: Automatic batch creation and updates
-
-### Usage
-1. Navigate to **Inventory** page
-2. Click **"Upload Inventory File"** button
-3. Download a template (optional) to see the required format
-4. Drag and drop your file or click to browse
-5. Review validation results
-6. Upload and view detailed results
-
-### File Size Limit
-Maximum file size: **10MB**
-
-## 📚 API Documentation
-
-Once the backend is running, visit:
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-
-### File Upload Endpoints
-- `POST /api/inventory/upload` - Upload inventory file (Excel, CSV, or JSON)
-- `GET /api/inventory/download-template?format=excel|csv|json` - Download template file
-
-## 🏗️ Building for Production
-
-### Backend
-```bash
-cd backend
-pip install -r requirements.txt
-# Set DEBUG=False in .env
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-### Frontend
-```bash
-cd frontend
-npm run build
-# Output will be in frontend/dist/
-```
-
-## 🚢 Deployment
-
-### Frontend (Vercel)
-
-1. **Connect Repository** to Vercel
-2. **Configure Settings**:
-   - Root Directory: `frontend`
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-   - Framework Preset: `Vite`
-3. **Add Environment Variable**:
-   - `VITE_API_URL` = Your backend API URL
-4. **Deploy**
-
-### Backend (Railway/Render/Heroku)
-
-See `DEPLOYMENT.md` for detailed deployment instructions.
-
-## 🧪 Testing
-
-### Backend Testing
-```bash
-cd backend
-pytest  # If tests are added
-```
-
-### Frontend Testing
-```bash
-cd frontend
-npm test  # If tests are added
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👤 Author
-
-**Panganuri Ragini**
-
-## 🙏 Acknowledgments
-
-- FastAPI community for excellent documentation
-- React team for the amazing framework
-- All open-source contributors whose packages made this possible
-
-## 📞 Support
-
-For issues, questions, or contributions, please open an issue on GitHub.
-
-## 🔗 Additional Documentation
-
-- **Installation Guide**: See `INSTALLATION.md`
-- **Deployment Guide**: See `DEPLOYMENT.md`
-- **Login Troubleshooting**: See `LOGIN_TROUBLESHOOTING.md`
-- **Vercel Deployment**: See `VERCEL_DEPLOYMENT.md`
-- **Gemini AI Setup**: See `GEMINI_SETUP.md` (for advanced chatbot features)
 
 ---
-
-**Made with ❤️ for better pharmacy management**
-#   p h a r m a c y - i n v e n t o r y 
- 
- "# pharmacy-inventory-backend" 
+**Made with ❤️ for efficient healthcare.**

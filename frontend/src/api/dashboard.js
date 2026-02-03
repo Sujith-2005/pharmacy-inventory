@@ -10,7 +10,7 @@ import {
 export const dashboardApi = {
   getStats: async () => {
     try {
-      const response = await apiClient.get('/api/dashboard/stats')
+      const response = await apiClient.get('/dashboard/stats')
       return response.data
     } catch (error) {
       console.warn('Network error, using mock data for stats', error)
@@ -20,7 +20,7 @@ export const dashboardApi = {
 
   getExpiryTimeline: async () => {
     try {
-      const response = await apiClient.get('/api/dashboard/expiry-timeline')
+      const response = await apiClient.get('/dashboard/expiry-timeline')
       return response.data
     } catch (error) {
       console.warn('Network error, using mock data for timeline', error)
@@ -30,7 +30,7 @@ export const dashboardApi = {
 
   getInventoryByCategory: async () => {
     try {
-      const response = await apiClient.get('/api/dashboard/inventory-by-category')
+      const response = await apiClient.get('/dashboard/inventory-by-category')
       return response.data
     } catch (error) {
       console.warn('Network error, using mock data for categories', error)
@@ -40,7 +40,7 @@ export const dashboardApi = {
 
   getSalesTrends: async (days = 30) => {
     try {
-      const response = await apiClient.get('/api/dashboard/sales-trends', {
+      const response = await apiClient.get('/dashboard/sales-trends', {
         params: { days },
       })
       return response.data
@@ -52,13 +52,22 @@ export const dashboardApi = {
 
   getTopMedicines: async (limit = 10, by = 'consumption') => {
     try {
-      const response = await apiClient.get('/api/dashboard/top-medicines', {
+      const response = await apiClient.get('/dashboard/top-medicines', {
         params: { limit, by },
       })
       return response.data
     } catch (error) {
       console.warn('Network error, using mock data for top medicines', error)
       return mockTopMedicines
+    }
+  },
+
+  getAIInsights: async () => {
+    try {
+      const response = await apiClient.get('/dashboard/ai-insights')
+      return response.data
+    } catch (error) {
+      return { insight: "AI Analysis unavailable (Simulated): Inventory levels are stable, but antibiotic stock is low." }
     }
   },
 }

@@ -29,14 +29,14 @@ export default function FileUpload({ onSuccess, onClose }: FileUploadProps) {
     mutationFn: async (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      
+
       const response = await inventoryApi.uploadFile(file)
       return response
     },
     onSuccess: (data: UploadResult) => {
       setUploadResult(data)
       setUploadProgress(100)
-      
+
       if (data.error_count === 0) {
         toast.success(
           `Upload successful! ${data.success_count} items processed.`,
@@ -48,16 +48,16 @@ export default function FileUpload({ onSuccess, onClose }: FileUploadProps) {
           { duration: 7000 }
         )
       }
-      
+
       if (data.warning_count > 0) {
         toast(`⚠️ ${data.warning_count} warnings`, { duration: 5000 })
       }
-      
+
       queryClient.invalidateQueries({ queryKey: ['medicines'] })
       queryClient.invalidateQueries({ queryKey: ['stock-levels'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['alerts'] })
-      
+
       if (onSuccess) {
         setTimeout(() => {
           onSuccess()
@@ -90,7 +90,7 @@ export default function FileUpload({ onSuccess, onClose }: FileUploadProps) {
 
     const files = Array.from(e.dataTransfer.files)
     const file = files[0]
-    
+
     if (file) {
       validateAndSetFile(file)
     }
@@ -107,7 +107,7 @@ export default function FileUpload({ onSuccess, onClose }: FileUploadProps) {
     // Check file type
     const validExtensions = ['.xlsx', '.xls', '.csv', '.json']
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
-    
+
     if (!validExtensions.includes(fileExtension)) {
       toast.error('Invalid file type. Please upload Excel (.xlsx, .xls), CSV (.csv), or JSON (.json) files.')
       return
@@ -147,34 +147,18 @@ export default function FileUpload({ onSuccess, onClose }: FileUploadProps) {
     }
   }
 
-  const handleDownloadTemplate = async (format: 'excel' | 'csv' | 'json') => {
+  const handleDownloadTemplate = (format: 'excel' | 'csv' | 'json') => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/inventory/download-template?format=${format}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      )
+      // Hardcoded to 8000 to resolve user's local port mismatch (seeing 8002)
+      const baseUrl = 'http://localhost:8000'
+      const url = `${baseUrl}/api/inventory/download-template?format=${format}`
 
-      if (!response.ok) {
-        throw new Error('Failed to download template')
-      }
+      // Direct navigation is most reliable for downloads
+      window.location.href = url
 
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `inventory_template.${format === 'excel' ? 'xlsx' : format}`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      toast.success(`Template downloaded as ${format.toUpperCase()}`)
+      toast.success(`Downloading ${format.toUpperCase()} template...`)
     } catch (error) {
-      toast.error('Failed to download template')
+      toast.error('Failed to initiate download')
     }
   }
 
@@ -242,13 +226,12 @@ export default function FileUpload({ onSuccess, onClose }: FileUploadProps) {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                isDragging
-                  ? 'border-primary-500 bg-primary-50'
-                  : selectedFile
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
+                ? 'border-primary-500 bg-primary-50'
+                : selectedFile
                   ? 'border-green-500 bg-green-50'
                   : 'border-gray-300 bg-gray-50'
-              }`}
+                }`}
             >
               {selectedFile ? (
                 <div className="space-y-4">

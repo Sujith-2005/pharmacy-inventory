@@ -14,6 +14,32 @@ from auth import get_current_active_user
 from config import settings
 
 router = APIRouter()
+from utils.ai import generate_ai_response
+
+@router.get("/ai-analysis")
+async def get_alerts_ai_analysis(db: Session = Depends(get_db)):
+    """Get AI risk assessment of alerts"""
+    alerts = await get_unacknowledged_alerts(db)
+    
+    if not alerts:
+        return {"analysis": "System is stable. No active alerts demanding attention."}
+
+    context = "\n".join([
+        f"- {a.alert_type}: {a.message} (Severity: {a.severity})"
+        for a in alerts[:10]
+    ])
+    
+    prompt = (
+        f"Act as a Crisis Response Manager. Analyze these active pharmacy system alerts:\n{context}\n\n"
+        f"Provide a Risk Mitigation Assessment:\n"
+        f"1. **Pattern Recognition**: Are these alerts isolated incidents or signs of a systemic failure (e.g., vendor delay pattern, recurring fridge failure)?\n"
+        f"2. **Prioritization**: Which single alert requires the most immediate human intervention?\n"
+        f"3. **Prevention**: Recommend a systemic fix to prevent recurrence (e.g., 'Adjust safety stock settings', 'Staff training on handling').\n"
+        f"FORMAT RULE: Do NOT use asterisks (*), bolding (**), or markdown. Use standard numbered lists (1., 2.) only. Plain text."
+    )
+    
+    return {"analysis": generate_ai_response(prompt)}
+
 
 
 @router.get("/", response_model=List[AlertResponse])
@@ -67,44 +93,77 @@ async def acknowledge_alert(
     return {"message": "Alert acknowledged"}
 
 
-@router.post("/check-low-stock")
-async def check_low_stock(
+@router.post("/run-system-scan")
+async def run_system_scan(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_active_user)
 ):
-    """Manually trigger low stock check"""
-    # Get all medicines with stock
+    """Run full system scan for low stock and expiry"""
     medicines = db.query(Medicine).filter(Medicine.is_active == True).all()
     
     alerts_created = 0
+    today = datetime.now()
+    month_from_now = today + timedelta(days=30)
+    
     for medicine in medicines:
-        total_stock = sum([b.quantity for b in medicine.batches if not b.is_expired])
+        # 1. Check Low Stock
+        active_batches = [b for b in medicine.batches if not b.is_expired and not b.is_damaged]
+        total_stock = sum([b.quantity for b in active_batches])
         
-        # Check if already has active low stock alert
-        existing_alert = db.query(Alert).filter(
+        # Check existing low stock alert
+        existing_stock_alert = db.query(Alert).filter(
             Alert.medicine_id == medicine.id,
-            Alert.alert_type == AlertType.LOW_STOCK,
+            Alert.alert_type.in_([AlertType.LOW_STOCK, AlertType.STOCK_OUT]),
             Alert.is_acknowledged == False
         ).first()
         
-        if existing_alert:
-            continue
-        
-        # Simple threshold - in production, use forecasted demand
-        if total_stock < 20:  # Example threshold
-            severity = "critical" if total_stock == 0 else "high" if total_stock < 10 else "medium"
-            
-            alert = Alert(
-                alert_type=AlertType.STOCK_OUT if total_stock == 0 else AlertType.LOW_STOCK,
-                medicine_id=medicine.id,
-                message=f"{medicine.name} ({medicine.sku}) has low stock: {total_stock} units remaining",
-                severity=severity
-            )
-            db.add(alert)
-            alerts_created += 1
-    
+        if not existing_stock_alert:
+            # Thresholds: Critical=0, High<15, Medium<30
+            if total_stock == 0:
+                db.add(Alert(
+                    alert_type=AlertType.STOCK_OUT,
+                    medicine_id=medicine.id,
+                    message=f"CRITICAL: {medicine.name} is OUT OF STOCK!",
+                    severity="critical"
+                ))
+                alerts_created += 1
+            elif total_stock < 15:
+                db.add(Alert(
+                    alert_type=AlertType.LOW_STOCK,
+                    medicine_id=medicine.id,
+                    message=f"Low Stock: {medicine.name} has only {total_stock} units.",
+                    severity="high"
+                ))
+                alerts_created += 1
+
+        # 2. Check Expiry
+        for batch in active_batches:
+            if batch.expiry_date and batch.expiry_date <= month_from_now:
+                # Check existing expiry alert for this batch
+                # Note: Simple deduplication by message content comparison for now
+                msg = f"Batch {batch.batch_number} for {medicine.name} expires on {batch.expiry_date.date()}"
+                
+                existing_expiry = db.query(Alert).filter(
+                    Alert.medicine_id == medicine.id,
+                    Alert.alert_type == AlertType.EXPIRY_WARNING,
+                    Alert.message == msg,
+                    Alert.is_acknowledged == False
+                ).first()
+                
+                if not existing_expiry:
+                    days_left = (batch.expiry_date - today).days
+                    severity = "critical" if days_left < 7 else "high"
+                    
+                    db.add(Alert(
+                        alert_type=AlertType.EXPIRY_WARNING,
+                        medicine_id=medicine.id,
+                        message=msg,
+                        severity=severity
+                    ))
+                    alerts_created += 1
+                    
     db.commit()
-    return {"message": f"Created {alerts_created} low stock alerts"}
+    return {"message": f"System scan complete. Generated {alerts_created} new alerts."}
 
 
 @router.get("/stats")

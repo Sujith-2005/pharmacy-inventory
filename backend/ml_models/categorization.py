@@ -23,17 +23,71 @@ MEDICINE_CATEGORIES = {
 }
 
 
+import google.generativeai as genai
+from config import settings
+
+# Configure Gemini
+try:
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    model = genai.GenerativeModel("models/gemini-2.0-flash-lite")
+except:
+    model = None
+
+# Circuit breaker for API errors
+FAILED_API_CALLS = 0
+MAX_FAILED_CALLS = 1
+
+def categorize_medicine_ai(name: str, description: Optional[str] = None) -> str:
+    """Use Gemini to categorize medicine"""
+    global FAILED_API_CALLS
+    
+    if not model or FAILED_API_CALLS >= MAX_FAILED_CALLS:
+        return None
+        
+    try:
+        prompt = f"""
+        Categorize the following medicine into exactly one of these categories:
+        {list(MEDICINE_CATEGORIES.keys())}
+        
+        Medicine: {name}
+        Description: {description or 'N/A'}
+        
+        Return ONLY the category name.
+        """
+        response = model.generate_content(prompt)
+        category = response.text.strip()
+        
+        # Verify it's a valid category
+        if category in MEDICINE_CATEGORIES:
+            return category
+        
+        # Fuzzy match or default
+        for valid_cat in MEDICINE_CATEGORIES:
+            if valid_cat in category:
+                return valid_cat
+                
+        return None
+    except Exception as e:
+        error_str = str(e)
+        print(f"AI Categorization failed: {error_str}")
+        
+        # Check for 403/PermissionDenied or Quota exceeded
+        if "403" in error_str or "PermissionDenied" in error_str or "quota" in error_str.lower():
+            print("CRITICAL: API Key blocked or quota exceeded. Disabling AI for this session.")
+            FAILED_API_CALLS = MAX_FAILED_CALLS + 1
+            
+        return None
+
 def categorize_medicine(name: str, description: Optional[str] = None) -> str:
     """
-    Categorize medicine based on name and description using keyword matching
-    
-    Args:
-        name: Medicine name
-        description: Optional medicine description
-        
-    Returns:
-        Category name
+    Categorize medicine using AI, falling back to keyword matching
     """
+    # Try AI first
+    ai_category = categorize_medicine_ai(name, description)
+    if ai_category:
+        return ai_category
+
+    # Fallback to legacy keyword matching
     if not name:
         return "General"
     

@@ -4,7 +4,7 @@ import { mockForecast, mockReorderSuggestions } from './mockData'
 export const forecastingApi = {
   getForecast: async (medicineId, horizonDays = 30) => {
     try {
-      const response = await apiClient.get(`/api/forecasting/medicine/${medicineId}`, {
+      const response = await apiClient.get(`/forecasting/medicine/${medicineId}`, {
         params: { horizon_days: horizonDays },
       })
       return response.data
@@ -16,7 +16,7 @@ export const forecastingApi = {
 
   getReorderSuggestions: async (category, criticalOnly) => {
     try {
-      const response = await apiClient.get('/api/forecasting/reorder-suggestions', {
+      const response = await apiClient.get('/forecasting/reorder-suggestions', {
         params: { category, critical_only: criticalOnly },
       })
       return response.data
@@ -28,7 +28,7 @@ export const forecastingApi = {
 
   generateBatchForecast: async () => {
     try {
-      const response = await apiClient.post('/api/forecasting/batch-forecast')
+      const response = await apiClient.post('/forecasting/batch-forecast')
       return response.data
     } catch (error) {
       return { success: true, message: "Mock forecast generated" }
@@ -37,11 +37,20 @@ export const forecastingApi = {
 
   simulateHistory: async () => {
     try {
-      const response = await apiClient.post('/api/forecasting/simulate')
+      const response = await apiClient.post('/forecasting/simulate')
       return response.data
     } catch (error) {
       console.warn('Network error, using mock simulation', error)
       return { message: "Simulation triggered (Mock mode)" }
+    }
+  },
+
+  getAIAnalysis: async () => {
+    try {
+      const response = await apiClient.get('/forecasting/ai-analysis')
+      return response.data
+    } catch (error) {
+      return { analysis: "AI Analysis unavailable." }
     }
   },
 }

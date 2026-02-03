@@ -11,6 +11,12 @@ engine = create_engine(
     connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
 )
 
+# DEBUG: Print exact DB path
+if "sqlite" in settings.DATABASE_URL:
+    import os
+    db_path = settings.DATABASE_URL.replace("sqlite:///", "")
+    print(f"DEBUG: Using Database at ABSOLUTE PATH: {os.path.abspath(db_path)}")
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

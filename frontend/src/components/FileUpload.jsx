@@ -15,14 +15,14 @@ export default function FileUpload({ onSuccess, onClose }) {
     mutationFn: async (file) => {
       const formData = new FormData()
       formData.append('file', file)
-      
+
       const response = await inventoryApi.uploadFile(file)
       return response
     },
     onSuccess: (data) => {
       setUploadResult(data)
       setUploadProgress(100)
-      
+
       if (data.error_count === 0) {
         toast.success(
           `Upload successful! ${data.success_count} items processed.`,
@@ -34,45 +34,45 @@ export default function FileUpload({ onSuccess, onClose }) {
           { duration: 7000 }
         )
       }
-      
+
       if (data.warning_count > 0) {
         toast(`⚠️ ${data.warning_count} warnings`, { duration: 5000 })
       }
-      
+
       // Wait a moment for backend to fully commit data, then invalidate and refetch
       // Use longer delay to ensure backend has fully committed and is ready
       setTimeout(async () => {
         try {
           console.log('DEBUG: Starting query invalidation and refetch...')
-          
+
           // Invalidate all related queries first
           await queryClient.invalidateQueries({ queryKey: ['medicines'] })
           await queryClient.invalidateQueries({ queryKey: ['stock-levels'] })
           await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
           await queryClient.invalidateQueries({ queryKey: ['alerts'] })
-          
+
           // Force refetch and wait for completion to ensure data is loaded
           const [medicinesResult, stockResult, dashboardResult] = await Promise.all([
             queryClient.refetchQueries({ queryKey: ['medicines'], exact: false }),
             queryClient.refetchQueries({ queryKey: ['stock-levels'], exact: false }),
             queryClient.refetchQueries({ queryKey: ['dashboard'], exact: false })
           ])
-          
+
           // Log for debugging
           console.log('DEBUG: Refetch completed')
-          
+
           // Extract data from results
           const medicinesData = medicinesResult?.[0]?.state?.data || medicinesResult?.[0]?.data || []
           const stockData = stockResult?.[0]?.state?.data || stockResult?.[0]?.data || []
-          
+
           console.log(`DEBUG: Medicines count: ${medicinesData.length}, Stock levels count: ${stockData.length}`)
-          
+
           if (medicinesData.length === 0 && data.success_count > 0) {
             console.warn('WARNING: Upload succeeded but no medicines returned. Check backend logs and expiry dates.')
           } else if (medicinesData.length > 0) {
             console.log('✅ Data successfully loaded:', medicinesData.length, 'medicines')
           }
-          
+
           // Close modal after data is loaded
           if (onSuccess) {
             onSuccess()
@@ -112,7 +112,7 @@ export default function FileUpload({ onSuccess, onClose }) {
 
     const files = Array.from(e.dataTransfer.files)
     const file = files[0]
-    
+
     if (file) {
       validateAndSetFile(file)
     }
@@ -129,7 +129,7 @@ export default function FileUpload({ onSuccess, onClose }) {
     // Check file type
     const validExtensions = ['.xlsx', '.xls', '.csv', '.json']
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
-    
+
     if (!validExtensions.includes(fileExtension)) {
       toast.error('Invalid file type. Please upload Excel (.xlsx, .xls), CSV (.csv), or JSON (.json) files.')
       return
@@ -169,35 +169,18 @@ export default function FileUpload({ onSuccess, onClose }) {
     }
   }
 
-  const handleDownloadTemplate = async (format) => {
+  const handleDownloadTemplate = (format) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || ''
-      const response = await fetch(
-        `${apiUrl}/api/inventory/download-template?format=${format}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      )
+      // Hardcoded to 8000 to resolve user's local port mismatch
+      const baseUrl = 'http://localhost:8000'
+      const url = `${baseUrl}/api/inventory/download-template?format=${format}`
 
-      if (!response.ok) {
-        throw new Error('Failed to download template')
-      }
+      // Direct navigation is most reliable for downloads
+      window.location.href = url
 
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `inventory_template.${format === 'excel' ? 'xlsx' : format}`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      toast.success(`Template downloaded as ${format.toUpperCase()}`)
+      toast.success(`Downloading ${format.toUpperCase()} template...`)
     } catch (error) {
-      toast.error('Failed to download template')
+      toast.error('Failed to initiate download')
     }
   }
 
@@ -265,13 +248,12 @@ export default function FileUpload({ onSuccess, onClose }) {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                isDragging
-                  ? 'border-primary-500 bg-primary-50'
-                  : selectedFile
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
+                ? 'border-primary-500 bg-primary-50'
+                : selectedFile
                   ? 'border-green-500 bg-green-50'
                   : 'border-gray-300 bg-gray-50'
-              }`}
+                }`}
             >
               {selectedFile ? (
                 <div className="space-y-4">

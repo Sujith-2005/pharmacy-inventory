@@ -5,9 +5,13 @@ import Dashboard from './pages/Dashboard'
 import Inventory from './pages/Inventory'
 import Forecasting from './pages/Forecasting'
 import Alerts from './pages/Alerts'
+import Suppliers from './pages/Suppliers'
 import WasteAnalytics from './pages/WasteAnalytics'
+import Analysis from './pages/Analysis'
+import PriceComparison from './pages/PriceComparison'
 import Layout from './components/Layout'
 import Chatbot from './components/Chatbot'
+import Orders from './pages/Orders'
 
 function App() {
   const { user, loading } = useAuth()
@@ -31,8 +35,12 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="inventory" element={<Inventory />} />
           <Route path="forecasting" element={<Forecasting />} />
+          <Route path="suppliers" element={<Suppliers />} />
           <Route path="alerts" element={<Alerts />} />
           <Route path="waste" element={<WasteAnalytics />} />
+          <Route path="analysis" element={<Analysis />} />
+          <Route path="price-comparison" element={<PriceComparison />} />
+          <Route path="orders" element={<Orders />} />
         </Route>
       </Routes>
       {user && <Chatbot />}
