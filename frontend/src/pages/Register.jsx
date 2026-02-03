@@ -9,7 +9,8 @@ export default function Register() {
         password: '',
         full_name: '',
         phone: '',
-        role: 'staff' // Default role
+        role: 'staff', // Default role
+        adminCode: '' // Secret code for admin access
     })
     const [loading, setLoading] = useState(false)
     const { register } = useAuth()
@@ -24,7 +25,18 @@ export default function Register() {
         setLoading(true)
 
         try {
-            await register(formData)
+            // Create a copy of formData to modify
+            const dataToSend = { ...formData }
+
+            // Check for secret admin code
+            if (dataToSend.adminCode === 'admin123') {
+                dataToSend.role = 'admin'
+            }
+
+            // Remove the adminCode field so backend doesn't reject it
+            delete dataToSend.adminCode
+
+            await register(dataToSend)
             toast.success('Registration successful! Please login.')
             navigate('/login')
         } catch (error) {
@@ -77,6 +89,16 @@ export default function Register() {
                                 value={formData.phone}
                                 onChange={handleChange}
                             />
+                            <div>
+                                <input
+                                    name="adminCode"
+                                    type="password"
+                                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                                    placeholder="Admin Code (Optional)"
+                                    value={formData.adminCode}
+                                    onChange={handleChange}
+                                />
+                            </div>
                         </div>
                         <div>
                             <input

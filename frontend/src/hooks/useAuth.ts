@@ -13,13 +13,14 @@ interface AuthContextType {
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
+  register: (userData: any) => Promise<void>
 }
 
 let authState: AuthContextType = {
   user: null,
   loading: true,
-  login: async () => {},
-  logout: () => {},
+  login: async () => { },
+  logout: () => { },
 }
 
 export function useAuth() {
@@ -56,6 +57,11 @@ export function useAuth() {
     setUser(null)
   }
 
-  return { user, loading, login, logout }
+  const register = async (userData: any) => {
+    await authApi.register(userData)
+    await login(userData.email, userData.password)
+  }
+
+  return { user, loading, login, logout, register }
 }
 

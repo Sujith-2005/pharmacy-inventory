@@ -23,7 +23,7 @@ export const authApi = {
     const formData = new URLSearchParams()
     formData.append('username', email)  // OAuth2PasswordRequestForm expects 'username' field
     formData.append('password', password)
-    
+
     const response = await apiClient.post('/api/auth/login', formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -34,6 +34,11 @@ export const authApi = {
 
   getMe: async (): Promise<User> => {
     const response = await apiClient.get('/api/auth/me')
+    return response.data
+  },
+
+  register: async (userData: any): Promise<User> => {
+    const response = await apiClient.post('/api/auth/register', userData)
     return response.data
   },
 }
