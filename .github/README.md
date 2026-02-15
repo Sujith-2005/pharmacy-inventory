@@ -1,7 +1,6 @@
 # Smart Pharmacy Inventory System 💊
 
 A modern, full-stack pharmacy inventory management system designed to streamline operations, optimize stock levels, and provide intelligent insights through data analytics and AI.
-You can check my website:https://pharmacy-inventory-sepia.vercel.app?_vercel_share=Ljnp2HXsr4HzgFvvA4LcmvzoEvTN5LsN
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
