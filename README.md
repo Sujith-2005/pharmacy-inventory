@@ -1,150 +1,138 @@
-# 🏥 Smart Pharmacy Inventory Management System
+# Smart Pharmacy Inventory System 💊
 
-A professional, AI-powered pharmacy inventory management system built with **FastAPI** (Python) and **React** (TypeScript). This application is designed for efficient inventory tracking, demand forecasting, and waste reduction.
+A modern, full-stack pharmacy inventory management system designed to streamline operations, optimize stock levels, and provide intelligent insights through data analytics and AI.
 
----
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
+![React](https://img.shields.io/badge/react-18.x-61DAFB.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.68+-009688.svg)
 
-## ✨ Key Features
+## 🚀 Features
 
-- **📦 Inventory Management**: Full control over stock, batches, and suppliers.
-- **🤖 AI Forecasting**: Machine learning models to predict demand and optimize stock.
-- **⚡ Real-time Alerts**: Notifications for low stock and expiry dates.
-- **📊 Analytics Dashboard**: Visual insights into sales, waste, and inventory health.
-- **📤 Smart Data Import**: Drag-and-drop Excel/CSV/JSON uploads with validation.
-- **🔐 Secure Access**: Role-based authentication (Admin, Manager, Pharmacist).
-
----
+*   Inventory Management: Real-time tracking of drug stock levels, expiration dates, and batch information.
+*   Intelligent Forecasting: AI-driven demand forecasting to prevent stockouts and overstocking.
+*   Waste Analytics: Detailed analysis of expired and wasted inventory to identify cost-saving opportunities.
+*   Alert System: Automated notifications for low stock, expiring items, and other critical events.
+*   Supplier Management: Maintain a database of suppliers and generate purchase orders.
+*   Interactive Dashboard: A comprehensive overview of key performance indicators (KPIs) and operational metrics.
+*   AI Chatbot: An integrated assistant to answer queries about inventory and operations.
+*   User Authentication: Secure login and role-based access control.
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Python 3.8+, FastAPI, SQLAlchemy, SQLite/PostgreSQL, Pandas, Scikit-learn
-- **Frontend**: Node.js 16+, React 18, TypeScript, Vite, Tailwind CSS, Recharts
+### Backend
+*   Framework: FastAPI - High-performance web framework for building APIs with Python.
+*   Database: SQLAlchemy (likely SQLite for local development)
+*   Data Processing: Pandas, NumPy
+*   AI/ML: Scikit-learn (or similar for forecasting logic)
 
----
+### Frontend
+*   Framework: React
+*   Build Tool: Vite
+*   Styling: Tailwind CSS
+*   State Management: React Query / Context API
+*   Icons: Heroicons
 
-## 🚀 Quick Start (Local Development)
+## 📋 Prerequisites
 
-Follow these steps to get the application running on your local machine.
+Before you begin, ensure you have the following installed:
+*   Python 3.8+
+*   Node.js (v16 or higher recommended)
+*   npm (usually comes with Node.js)
 
-### Prerequisites
-- [Python 3.8+](https://www.python.org/downloads/)
-- [Node.js 16+](https://nodejs.org/)
-- [Git](https://git-scm.com/)
+## ⚡ Installation & Setup
 
-### 1. Backend Setup
+1.  Clone the repository:
+    ```bash
+    git clone <repository_url>
+    cd pharmacy-inventory
+    ```
 
-Open a terminal in the `backend` folder:
+### Backend Setup
 
-```bash
-cd backend
+2.  Navigate to the backend directory:
+    ```bash
+    cd backend
+    ```
 
-# Create a virtual environment
-python -m venv venv
+3.  Create a virtual environment (optional but recommended):
+    ```bash
+    python -m venv venv
+    # Activate on Windows:
+    .\venv\Scripts\activate
+    # Activate on macOS/Linux:
+    source venv/bin/activate
+    ```
 
-# Activate (Windows)
-venv\Scripts\activate
-# Activate (Mac/Linux)
-# source venv/bin/activate
+4.  Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-# Install dependencies
-pip install -r requirements.txt
+5.  Environment Configuration:
+    *   Create a .env file in the backend/ directory based on .env.example.
+    *   Add necessary API keys and configuration settings (e.g., Database URL, Secret Key).
 
-# Setup Environment Variables
-# Copy the example file. Update keys if needed.
-copy .env.example .env
+6.  Run the Backend Server:
+    ```bash
+    python main.py
+    # OR using uvicorn directly:
+    uvicorn main:app --reload --host 0.0.0.0 --port 8000
+    ```
+    The API will be available at http://localhost:8000. API documentation is available at http://localhost:8000/docs.
 
-# Initialize the Database
-python init_db.py
+### Frontend Setup
 
-# Start the Server
-uvicorn main:app --reload
-```
-*The backend API will run at `http://localhost:8000`. API Docs: `http://localhost:8000/docs`*
+7.  Navigate to the frontend directory:
+    Open a new terminal window and navigate to the project root, then:
+    ```bash
+    cd frontend
+    ```
 
-### 2. Frontend Setup
+8.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-Open a new terminal in the `frontend` folder:
+9.  Run the Frontend Development Server:
+    ```bash
+    npm run dev
+    ```
+    The application will typically run at http://localhost:3000 (or another port if 3000 is busy).
 
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start the development server
-npm run dev
-```
-*The frontend will run at `http://localhost:5173` (or the port shown in terminal).*
-
----
-
-## 📦 Deployment Guide
-
-This project is ready for deployment on modern cloud platforms.
-
-### 🌐 Frontend Deployment (Vercel)
-
-1.  Push your code to **GitHub**.
-2.  Go to [Vercel](https://vercel.com) and **Add New Project**.
-3.  Import your repository.
-4.  **Configure Project**:
-    -   **Root Directory**: `frontend`
-    -   **Framework Preset**: `Vite`
-    -   **Build Command**: `npm run build`
-    -   **Output Directory**: `dist`
-5.  **Environment Variables**:
-    -   Add `VITE_API_URL` with your deployed backend URL (e.g., `https://my-backend.railway.app`).
-6.  **Deploy**.
-
-### ⚙️ Backend Deployment (Railway/Render)
-
-**Recommended: Railway**
-
-1.  Sign up at [Railway.app](https://railway.app).
-2.  **New Project** -> **Deploy from GitHub repo**.
-3.  Select `backend` as the Root Directory if prompted (or configure in settings).
-4.  **Settings**:
-    -   **Build Command**: `pip install -r requirements.txt`
-    -   **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-5.  **Variables**: Add the contents of your `.env` file (DATABASE_URL, SECRET_KEY, etc.).
-    -   *Note*: For production, use a PostgreSQL database service (Railway provides one) instead of SQLite. Update `DATABASE_URL` to the Postgres connection string.
-
----
-
-## 🔧 Troubleshooting
-
-### Login Issues
--   **Default Admin**: `admin@pharmacy.com` / `admin123`
--   **Default Manager**: `manager@pharmacy.com` / `manager123`
--   If login fails, ensure the backend is running and `python init_db.py` was executed.
-
-### "Module not found"
--   Ensure your virtual environment is activated (`venv\Scripts\activate`) before running `pip install` or starting the server.
--   Ensure you are in the correct directory (`backend/`).
-
-### Frontend API Connection Error
--   Check if the backend is running on `http://localhost:8000`.
--   Verify `VITE_API_URL` in `frontend/.env` (or creates `.env.development` with `VITE_API_URL=http://localhost:8000`).
-
----
-
-## 📁 Project Structure
+## 📂 Project Structure
 
 ```
 pharmacy-inventory/
-├── backend/            # FastAPI Backend
-│   ├── main.py
-│   ├── models.py
-│   ├── routers/        # API Endpoints
-│   └── ml_models/      # AI/ML Logic
-├── frontend/           # React Frontend
+├── backend/                # FastAPI backend source code
+│   ├── main.py             # Application entry point
+│   ├── routers/            # API route definitions
+│   ├── models.py           # Database models
+│   ├── schemas.py          # Pydantic schemas
+│   ├── ml_models/          # Machine learning models
+│   ├── requirements.txt    # Python dependencies
+│   └── ...
+├── frontend/               # React frontend source code
 │   ├── src/
-│   │   ├── pages/
-│   │   └── components/
-├── data/               # Sample data files & templates
-├── scripts/            # Utility & Maintenance scripts
-└── README.md           # This file
+│   │   ├── components/     # Reusable UI components
+│   │   ├── pages/          # Application pages/routes
+│   │   └── ...
+│   ├── package.json        # NPM dependencies
+│   └── vite.config.js      # Vite configuration
+├── scripts/                # Utility and analysis scripts
+├── data/                   # Data storage (csv, json, etc.)
+└── README.md               # Project documentation
 ```
 
----
-**Made with ❤️ for efficient healthcare.**
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+1.  Fork the repository.
+2.  Create a new branch: git checkout -b feature/your-feature-name
+3.  Make your changes and commit them: git commit -m 'Add some feature'
+4.  Push to the branch: git push origin feature/your-feature-name
+5.  Submit a pull request.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
